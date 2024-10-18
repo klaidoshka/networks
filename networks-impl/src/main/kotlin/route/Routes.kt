@@ -1,33 +1,56 @@
 package route
 
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.reflect.*
+import service.DatabaseService
 
 object Routes {
 
-    fun Application.configureRouting() {
+    fun Application.configureRouting(databaseService: DatabaseService) {
         routing {
-            route("/api/v1/") {
-                configureLeftGraph()
-
-                configureRightGraph()
+            get {
+                call.respondText(
+                    this::class.java.classLoader
+                        .getResource("./static/index.html")!!
+                        .readText(),
+                    ContentType.Text.Html
+                )
             }
-        }
-    }
 
-    private fun Route.configureLeftGraph() {
-        route("graph/left-1/") {
-            get("") {
-                call.respondText("Hello World! (L)")
-            }
-        }
-    }
+            route("/api/v1/graph") {
+                post("/reseed") {
+                    try {
+                        databaseService.reseed()
+                    } catch (e: Exception) {
+                        call.respondText(status = HttpStatusCode.InternalServerError) {
+                            e.message ?: "Try again later"
+                        }
+                    }
+                }
 
-    private fun Route.configureRightGraph() {
-        route("graph/right-1/") {
-            get("") {
-                call.respondText("Hello World! (R)")
+                get("display") {
+                    call.respond(
+                        databaseService.getGraph(),
+                        typeInfo = typeInfo<List<List<Map<String, Any>>>>()
+                    )
+                }
+
+                route("/specific") {
+                    post("/createFriendship") {
+                        databaseService.createRandomFriendship()
+                    }
+
+                    post("/createGroup") {
+                        databaseService.createRandomGroup()
+                    }
+
+                    post("/createPost") {
+                        databaseService.createRandomPost()
+                    }
+                }
             }
         }
     }

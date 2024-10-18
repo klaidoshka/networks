@@ -2,7 +2,8 @@
 koin = "4.0.0"
 apache-commons = "3.17.0"
 guava = "33.3.1-jre"
-neo4j = "5.25.0"
+neo4j-driver = "5.25.0"
+neo4j-fabric = "5.24.2"
 ktor-version = "3.0.0"
 kotlin-version = "2.0.21"
 logback-version = "1.4.14"
@@ -11,12 +12,12 @@ logback-version = "1.4.14"
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor-version" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor-version" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-version" }
-kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin-version" }
-koin = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
-apache-commons = { group = "org.apache.commons", name = "commons-lang3", version.ref = "apache-commons" }
-guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
-neo4j-driver = { group = "org.neo4j.driver", name = "neo4j-java-driver", version.ref = "neo4j" }
-neo4j-fabric = { group = "org.neo4j", name = "neo4j-fabric", version.ref = "neo4j" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin-version" }
+koin = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+apache-commons = { module = "org.apache.commons:commons-lang3", version.ref = "apache-commons" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+neo4j-driver = { module = "org.neo4j.driver:neo4j-java-driver", version.ref = "neo4j-driver" }
+neo4j-fabric = { module = "org.neo4j:neo4j-fabric", version.ref = "neo4j-fabric" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-version" }
