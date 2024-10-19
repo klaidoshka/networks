@@ -18,45 +18,7 @@ class InsertLeftSplitQuery(
     }
 
     override fun cypherize(): List<String> {
-        val users = leftSplit.users
-        val posts = leftSplit.posts
-        val comments = leftSplit.comments
-        val likes = leftSplit.likes
-
-        val usersCypher = users.map {
-            """
-            USE $fabric.$database
-            CREATE (u:${User::class.simpleName} {
-                ${User::id.name}: "${it.id}",
-                ${User::birthDate.name}: "${it.birthDate}",
-                ${User::interests.name}: ${
-                    it.interests.joinToString(
-                        prefix = "[",
-                        postfix = "]"
-                    ) { interest -> "\"$interest\"" }
-                },
-                ${User::lastActiveAt.name}: "${it.lastActiveAt}",
-                ${User::location.name}: "${it.location}",
-                ${User::registeredAt.name}: "${it.registeredAt}",
-                ${User::status.name}: "${it.status}"
-            });
-            """.trimIndent()
-        }
-
-        val postsCypher = posts.map {
-            """
-            USE $fabric.$database
-            MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
-            CREATE (p:${Post::class.simpleName} {
-                ${Post::id.name}: "${it.id}",
-                ${Post::content.name}: "${it.content}",
-                ${Post::postedAt.name}: "${it.postedAt}"
-            })
-            CREATE (u)-[:CREATES]->(p);
-            """.trimIndent()
-        }
-
-        val commentsCypher = comments.map {
+        val commentsCypher = leftSplit.comments.map {
             """
             USE $fabric.$database
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
@@ -70,7 +32,7 @@ class InsertLeftSplitQuery(
             """.trimIndent()
         }
 
-        val likesCypher = likes.map {
+        val likesCypher = leftSplit.likes.map {
             """
             USE $fabric.$database
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
@@ -80,6 +42,38 @@ class InsertLeftSplitQuery(
                 ${Like::likedAt.name}: "${it.likedAt}"
             })
             CREATE (u)-[:LIKES]->(l)-[:A]->(p);
+            """.trimIndent()
+        }
+
+        val postsCypher = leftSplit.posts.map {
+            """
+            USE $fabric.$database
+            MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
+            CREATE (p:${Post::class.simpleName} {
+                ${Post::id.name}: "${it.id}",
+                ${Post::content.name}: "${it.content}",
+                ${Post::postedAt.name}: "${it.postedAt}"
+            })
+            CREATE (u)-[:CREATES]->(p);
+            """.trimIndent()
+        }
+        val usersCypher = leftSplit.users.map {
+            """
+            USE $fabric.$database
+            CREATE (u:${User::class.simpleName} {
+                ${User::id.name}: "${it.id}",
+                ${User::birthDate.name}: "${it.birthDate}",
+                ${User::interests.name}: ${
+                it.interests.joinToString(
+                    prefix = "[",
+                    postfix = "]"
+                ) { interest -> "\"$interest\"" }
+            },
+                ${User::lastActiveAt.name}: "${it.lastActiveAt}",
+                ${User::location.name}: "${it.location}",
+                ${User::registeredAt.name}: "${it.registeredAt}",
+                ${User::status.name}: "${it.status}"
+            });
             """.trimIndent()
         }
 
