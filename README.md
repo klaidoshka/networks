@@ -11,7 +11,7 @@ dbms {
     username = "neo4j"
   }
 
-  fabricName = "fabric"
+  compositeName = "fabric"
 
   leftSplit {
     primaryDatabaseName = "db-11"

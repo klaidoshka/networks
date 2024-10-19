@@ -44,7 +44,7 @@ class GraphDatabaseServiceImpl(
      */
     private fun <R> beginSession(block: Session.() -> R): R {
         return driver
-            .session(SessionConfig.forDatabase(dbmsInstancesConfiguration.fabricName))
+            .session(SessionConfig.forDatabase(dbmsInstancesConfiguration.compositeName))
             .use { session ->
                 block(session)
             }
@@ -65,7 +65,8 @@ class GraphDatabaseServiceImpl(
             }
         }
     }
-
+    
+    // TODO: Create graph labels indexes to speed up the queries (which we do not have).
     override suspend fun generateNodes(amount: Int) {
         withContext(Dispatchers.IO) {
             val users = userFactory.create(amount)
@@ -86,6 +87,7 @@ class GraphDatabaseServiceImpl(
         }
     }
 
+    // TODO: Create graph labels indexes to speed up the queries (which we do not have).
     override suspend fun generateNodesInLeftSplit(amount: Int) {
         withContext(Dispatchers.IO) {
             val users = userFactory.create(amount)
@@ -124,6 +126,7 @@ class GraphDatabaseServiceImpl(
         }
     }
 
+    // TODO: Create graph labels indexes to speed up the queries (which we do not have).
     override suspend fun generateNodesInRightSplit(amount: Int) {
         withContext(Dispatchers.IO) {
             val users = userFactory.create(amount)

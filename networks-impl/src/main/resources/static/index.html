@@ -57,7 +57,7 @@
     $('#generateNodesButton').click(() => {
       const amount = prompt("Enter the amount of nodes to generate:");
       if (amount > 0) {
-        $.post(`${endpointPrefix}/generate`, {amount: amount}, () => {
+        $.post(`${endpointPrefix}/generate?amount=${amount}`, () => {
           toastr.success('Generated nodes successfully');
         }).fail(() => {
           toastr.error('Failed to generate nodes');
@@ -72,7 +72,7 @@
     $('#generateLeftSplitNodesButton').click(() => {
       const amount = prompt("Enter the amount of nodes to generate for the left split:");
       if (amount > 0) {
-        $.post(`${endpointPrefix}/generateLeftSplit`, {amount: amount}, () => {
+        $.post(`${endpointPrefix}/generateLeftSplit?amount=${amount}`, () => {
           toastr.success('Generated left split nodes successfully');
         }).fail(() => {
           toastr.error('Failed to generate nodes');
@@ -87,7 +87,7 @@
     $('#generateRightSplitNodesButton').click(() => {
       const amount = prompt("Enter the amount of nodes to generate for the right split:");
       if (amount > 0) {
-        $.post(`${endpointPrefix}/generateRightSplit`, {amount: amount}, () => {
+        $.post(`${endpointPrefix}/generateRightSplit?amount=${amount}`, () => {
           toastr.success('Generated right split nodes successfully');
         }).fail(() => {
           toastr.error('Failed to generate nodes');

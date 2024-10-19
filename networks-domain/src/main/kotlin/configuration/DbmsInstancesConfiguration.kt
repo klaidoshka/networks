@@ -18,14 +18,14 @@ import java.net.URI
 interface DbmsInstancesConfiguration {
 
     /**
-     * Credentials of the dbms instance that contains neo4j-fabric architecture.
+     * Credentials of the dbms instance that contains neo4j composite-db architecture.
      */
     val credentials: Credentials
 
     /**
-     * The name of the fabric.
+     * The name of the composite database.
      */
-    val fabricName: String
+    val compositeName: String
 
     /**
      * Instance of the data left-split.
@@ -73,10 +73,10 @@ interface DbmsInstancesConfiguration {
 
     companion object {
 
+        const val COMPOSITE_NAME = "dbms.compositeName"
         const val CREDENTIALS_PASSWORD = "dbms.credentials.password"
         const val CREDENTIALS_URI = "dbms.credentials.uri"
         const val CREDENTIALS_USERNAME = "dbms.credentials.username"
-        const val FABRIC_NAME = "dbms.fabricName"
         const val LEFT_SPLIT_PRIMARY_DB = "dbms.leftSplit.primaryDatabaseName"
         const val LEFT_SPLIT_SECONDARY_DB = "dbms.leftSplit.secondaryDatabaseName"
         const val RIGHT_SPLIT_PRIMARY_DB = "dbms.rightSplit.primaryDatabaseName"

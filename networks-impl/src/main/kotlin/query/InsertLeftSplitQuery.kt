@@ -9,7 +9,7 @@ class InsertLeftSplitQuery(
     toPrimary: Boolean
 ) : Query {
 
-    private val fabric = dbmsInstancesConfiguration.fabricName
+    private val composite = dbmsInstancesConfiguration.compositeName
 
     private val database = if (toPrimary) {
         dbmsInstancesConfiguration.leftSplit.primaryDatabaseName
@@ -20,7 +20,7 @@ class InsertLeftSplitQuery(
     override fun cypherize(): List<String> {
         val commentsCypher = leftSplit.comments.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
             MATCH (p:${Post::class.simpleName} {${Post::id.name}: "${it.post.id}"})
             CREATE (c:${Comment::class.simpleName} {
@@ -34,7 +34,7 @@ class InsertLeftSplitQuery(
 
         val likesCypher = leftSplit.likes.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
             MATCH (p:${Post::class.simpleName} {${Post::id.name}: "${it.post.id}"})
             CREATE (l:${Like::class.simpleName} {
@@ -47,7 +47,7 @@ class InsertLeftSplitQuery(
 
         val postsCypher = leftSplit.posts.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
             CREATE (p:${Post::class.simpleName} {
                 ${Post::id.name}: "${it.id}",
@@ -59,16 +59,16 @@ class InsertLeftSplitQuery(
         }
         val usersCypher = leftSplit.users.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             CREATE (u:${User::class.simpleName} {
                 ${User::id.name}: "${it.id}",
                 ${User::birthDate.name}: "${it.birthDate}",
                 ${User::interests.name}: ${
-                it.interests.joinToString(
-                    prefix = "[",
-                    postfix = "]"
-                ) { interest -> "\"$interest\"" }
-            },
+                    it.interests.joinToString(
+                        prefix = "[",
+                        postfix = "]"
+                    ) { interest -> "\"$interest\"" }
+                },
                 ${User::lastActiveAt.name}: "${it.lastActiveAt}",
                 ${User::location.name}: "${it.location}",
                 ${User::registeredAt.name}: "${it.registeredAt}",

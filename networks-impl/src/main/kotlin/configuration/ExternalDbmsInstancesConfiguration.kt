@@ -10,7 +10,7 @@ class ExternalDbmsInstancesConfiguration(config: Config) : DbmsInstancesConfigur
         uri = URI(config.getString(DbmsInstancesConfiguration.CREDENTIALS_URI)),
         username = config.getString(DbmsInstancesConfiguration.CREDENTIALS_USERNAME)
     )
-    override val fabricName: String = config.getString(DbmsInstancesConfiguration.FABRIC_NAME)
+    override val compositeName: String = config.getString(DbmsInstancesConfiguration.COMPOSITE_NAME)
 
     override val leftSplit = Instance(
         primaryDatabaseName = config.getString(DbmsInstancesConfiguration.LEFT_SPLIT_PRIMARY_DB),

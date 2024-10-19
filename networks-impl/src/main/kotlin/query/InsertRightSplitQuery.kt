@@ -9,23 +9,18 @@ class InsertRightSplitQuery(
     toPrimary: Boolean
 ) : Query {
 
-    private val fabric = dbmsInstancesConfiguration.fabricName
+    private val composite = dbmsInstancesConfiguration.compositeName
 
     private val database = if (toPrimary) {
         dbmsInstancesConfiguration.rightSplit.primaryDatabaseName
     } else {
         dbmsInstancesConfiguration.rightSplit.secondaryDatabaseName
     }
-
-    // CREATE (u1)-[:OWNS]->(g)
-    // CREATE (u1)-[:FRIENDS]-(f)-[:WITH]-(u2)
-    // CREATE (u1)-[:SENDS]->(m)-[:TO]->(u2)
-    // CREATE (u2)-[:RECEIVES]->(m)-[:FROM]->(u1)
-    // CREATE (u1)-[:HAS]->(ms)-[:IN]->(g);
+    
     override fun cypherize(): List<String> {
         val friendsCypher = rightSplit.friendships.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u1:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.user1.id}"})
             MATCH (u2:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.user2.id}"})
             CREATE (u1)-[:FRIENDS]-(f:${Friendship::class.simpleName} {
@@ -37,7 +32,7 @@ class InsertRightSplitQuery(
 
         val groupsCypher = rightSplit.groups.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u1:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.user.id}"})
             CREATE (u1)-[:OWNS]->(g:${Group::class.simpleName} {
                 ${Group::description.name}: "${it.description}",
@@ -50,7 +45,7 @@ class InsertRightSplitQuery(
 
         val membershipsCypher = rightSplit.memberships.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u1:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.user.id}"})
             MATCH (g:${Group::class.simpleName} {${Group::id.name}: "${it.group.id}"})
             CREATE (u1)-[:HAS]->(ms:${Membership::class.simpleName} {
@@ -62,7 +57,7 @@ class InsertRightSplitQuery(
 
         val messagesCypher = rightSplit.messages.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             MATCH (u1:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.userSent.id}"})
             MATCH (u2:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.userReceived.id}"})
             CREATE (u1)-[:SENDS]->(m:${Message::class.simpleName} {
@@ -76,7 +71,7 @@ class InsertRightSplitQuery(
 
         val usersCypher = rightSplit.users.map {
             """
-            USE $fabric.$database
+            USE `$composite`.`$database`
             CREATE (u:${User::class.simpleName} {
                 ${UserSplitRight::email.name}: "${it.email}",
                 ${UserSplitRight::firstName.name}: "${it.firstName}",
