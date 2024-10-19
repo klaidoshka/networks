@@ -5,11 +5,11 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.reflect.*
-import service.DatabaseService
+import service.GraphDatabaseService
 
 object Routes {
 
-    fun Application.configureRouting(databaseService: DatabaseService) {
+    fun Application.configureRouting(databaseService: GraphDatabaseService) {
         routing {
             get {
                 call.respondText(
@@ -21,34 +21,80 @@ object Routes {
             }
 
             route("/api/v1/graph") {
-                post("/reseed") {
-                    try {
-                        databaseService.reseed()
-                    } catch (e: Exception) {
-                        call.respondText(status = HttpStatusCode.InternalServerError) {
-                            e.message ?: "Try again later"
-                        }
-                    }
-                }
-
-                get("display") {
+                get("/display") {
                     call.respond(
                         databaseService.getGraph(),
                         typeInfo = typeInfo<List<List<Map<String, Any>>>>()
                     )
                 }
 
-                route("/specific") {
-                    post("/createFriendship") {
-                        databaseService.createRandomFriendship()
+                post("/delete") {
+                    try {
+                        databaseService.deleteGraph()
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.InternalServerError) {
+                            e.message ?: "Try again later"
+                        }
+                    }
+                }
+
+                post("/generateLeftSplit") {
+                    val amount = call.parameters["amount"]?.toIntOrNull()
+
+                    if (amount == null || amount < 1) {
+                        call.respondText(status = HttpStatusCode.BadRequest) {
+                            "Invalid or undefined amount"
+                        }
+
+                        return@post
                     }
 
-                    post("/createGroup") {
-                        databaseService.createRandomGroup()
+                    try {
+                        databaseService.generateNodesInLeftSplit(amount)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.InternalServerError) {
+                            e.message ?: "Try again later"
+                        }
+                    }
+                }
+
+                post("/generateRightSplit") {
+                    val amount = call.parameters["amount"]?.toIntOrNull()
+
+                    if (amount == null || amount < 1) {
+                        call.respondText(status = HttpStatusCode.BadRequest) {
+                            "Invalid or undefined amount"
+                        }
+
+                        return@post
                     }
 
-                    post("/createPost") {
-                        databaseService.createRandomPost()
+                    try {
+                        databaseService.generateNodesInRightSplit(amount)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.InternalServerError) {
+                            e.message ?: "Try again later"
+                        }
+                    }
+                }
+
+                post("/generate") {
+                    val amount = call.parameters["amount"]?.toIntOrNull()
+
+                    if (amount == null || amount < 1) {
+                        call.respondText(status = HttpStatusCode.BadRequest) {
+                            "Invalid or undefined amount"
+                        }
+
+                        return@post
+                    }
+
+                    try {
+                        databaseService.generateNodes(amount)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.InternalServerError) {
+                            e.message ?: "Try again later"
+                        }
                     }
                 }
             }

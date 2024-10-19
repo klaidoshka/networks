@@ -3,6 +3,9 @@ package factory
 import model.RightSplit
 import model.User
 
+/**
+ * Creates a [RightSplit] instance from a list of [User] instances.
+ */
 interface RightSplitFactory {
 
     /**

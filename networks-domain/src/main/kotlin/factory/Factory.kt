@@ -1,5 +1,10 @@
 package factory
 
+/**
+ * Simple factory interface that demands no arguments to create an object.
+ * 
+ * @param R the type of object to create
+ */
 fun interface Factory<R> {
 
     /**

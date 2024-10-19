@@ -24,21 +24,21 @@
 
           <p class="card-text mt-3">Click the buttons below to perform actions on the database.</p>
 
-          <button id="createPostButton" class="btn btn-warning mt-2 text-left">Create Post with
-            Comment and Likes
+          <button id="generateNodesButton" class="btn btn-warning mt-2 text-left">
+            Generate Nodes
           </button>
 
-          <button id="createFriendshipButton" class="btn btn-warning mt-2 text-left">Create
-            Friendship with Messages
+          <button id="generateLeftSplitNodesButton" class="btn btn-warning mt-2 text-left">
+            Generate Nodes (Left Split)
           </button>
 
-          <button id="createGroupButton" class="btn btn-warning mt-2 text-left">Create Group with
-            Memberships
+          <button id="generateRightSplitNodesButton" class="btn btn-warning mt-2 text-left">
+            Generate Nodes (Right Split)
           </button>
 
           <button id="displayGraphButton" class="btn btn-info mt-2 text-left">Display Graph</button>
 
-          <button id="reseedButton" class="btn btn-danger mt-2 text-left">Reseed Database</button>
+          <button id="deleteButton" class="btn btn-danger mt-2 text-left">Delete Graph</button>
         </div>
       </div>
     </div>
@@ -53,40 +53,55 @@
 <script>
   const endpointPrefix = 'http://127.0.0.1:23567/api/v1/graph';
 
-  const onCreatePostClick = () => {
-    $('#createPostButton').click(() => {
-      $.post(`${endpointPrefix}/specific/createPost`, () => {
-        toastr.success('Post created successfully');
-      }).fail(() => {
-        toastr.error('Failed to create post');
-      });
+  const onGenerateNodesClick = () => {
+    $('#generateNodesButton').click(() => {
+      const amount = prompt("Enter the amount of nodes to generate:");
+      if (amount > 0) {
+        $.post(`${endpointPrefix}/generate`, {amount: amount}, () => {
+          toastr.success('Generated nodes successfully');
+        }).fail(() => {
+          toastr.error('Failed to generate nodes');
+        });
+      } else {
+        toastr.error('Invalid amount. Must be greater than 0');
+      }
     });
   }
 
-  const onCreateFriendshipClick = () => {
-    $('#createFriendshipButton').click(() => {
-      $.post(`${endpointPrefix}/specific/createFriendship`, () => {
-        toastr.success('Friendship created successfully');
-      }).fail(() => {
-        toastr.error('Failed to create friendship');
-      });
+  const onGenerateLeftSplitNodesClick = () => {
+    $('#generateLeftSplitNodesButton').click(() => {
+      const amount = prompt("Enter the amount of nodes to generate for the left split:");
+      if (amount > 0) {
+        $.post(`${endpointPrefix}/generateLeftSplit`, {amount: amount}, () => {
+          toastr.success('Generated left split nodes successfully');
+        }).fail(() => {
+          toastr.error('Failed to generate nodes');
+        });
+      } else {
+        toastr.error('Invalid amount. Must be greater than 0');
+      }
     });
   }
 
-  const onCreateGroupClick = () => {
-    $('#createGroupButton').click(() => {
-      $.post(`${endpointPrefix}/specific/createGroup`, () => {
-        toastr.success('Group created successfully');
-      }).fail(() => {
-        toastr.error('Failed to create group');
-      });
+  const onGenerateRightSplitNodesClick = () => {
+    $('#generateRightSplitNodesButton').click(() => {
+      const amount = prompt("Enter the amount of nodes to generate for the right split:");
+      if (amount > 0) {
+        $.post(`${endpointPrefix}/generateRightSplit`, {amount: amount}, () => {
+          toastr.success('Generated right split nodes successfully');
+        }).fail(() => {
+          toastr.error('Failed to generate nodes');
+        });
+      } else {
+        toastr.error('Invalid amount. Must be greater than 0');
+      }
     });
   }
 
   const onDisplayGraphClick = () => {
     $('#displayGraphButton').click(() => {
       $.get(`${endpointPrefix}/display`, (data) => {
-        toastr.success('Graph displayed successfully');
+        toastr.success('Displayed graph successfully. Open up console.');
 
         console.log(data);
       }).fail(() => {
@@ -95,22 +110,22 @@
     });
   }
 
-  const onReseedClick = () => {
-    $('#reseedButton').click(() => {
-      $.post(`${endpointPrefix}/reseed`, () => {
-        toastr.success('Database reseeded successfully');
-      }).fail((data) => {
-        toastr.error('Failed to reseed the database');
+  const onDeleteGraphClick = () => {
+    $('#deleteButton').click(() => {
+      $.post(`${endpointPrefix}/delete`, () => {
+        toastr.success('Database deleted successfully');
+      }).fail(() => {
+        toastr.error('Failed to delete the database');
       });
     });
   }
 
   $(document).ready(() => {
-    onCreatePostClick();
-    onCreateFriendshipClick();
-    onCreateGroupClick();
+    onGenerateNodesClick();
+    onGenerateLeftSplitNodesClick();
+    onGenerateRightSplitNodesClick();
     onDisplayGraphClick();
-    onReseedClick();
+    onDeleteGraphClick();
   });
 </script>
 

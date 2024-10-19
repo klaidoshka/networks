@@ -6,9 +6,9 @@ package query
 fun interface Query {
 
     /**
-     * Converts the query to a Cypher queries.
+     * Converts the query to a `cypher` code multiple (if there are many) queries.
      *
-     * @return The Cypher queries to run in Neo4j.
+     * @return The `cypher` queries.
      */
     fun cypherize(): List<String>
 }

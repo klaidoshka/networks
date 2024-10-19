@@ -2,7 +2,7 @@ package query
 
 import configuration.DbmsInstancesConfiguration
 
-class DetachDeleteAllQuery(dbmsInstancesConfiguration: DbmsInstancesConfiguration) : Query {
+class MatchAllQuery(dbmsInstancesConfiguration: DbmsInstancesConfiguration) : Query {
 
     private val fabric = dbmsInstancesConfiguration.fabricName
     private val db11 = dbmsInstancesConfiguration.leftSplit.primaryDatabaseName
@@ -21,7 +21,7 @@ class DetachDeleteAllQuery(dbmsInstancesConfiguration: DbmsInstancesConfiguratio
                 """
                 USE $fabric.$database
                 MATCH (n)
-                DETACH DELETE n;
+                RETURN n
                 """.trimIndent()
             }
     }

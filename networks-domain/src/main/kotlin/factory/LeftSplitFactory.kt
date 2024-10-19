@@ -3,6 +3,9 @@ package factory
 import model.LeftSplit
 import model.User
 
+/**
+ * Creates a [LeftSplit] object from a list of [User] objects.
+ */
 interface LeftSplitFactory {
 
     /**

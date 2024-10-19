@@ -1,14 +1,22 @@
 package query
 
+import configuration.DbmsInstancesConfiguration
 import model.*
 
-class SeedLeftSplitQuery(
-    private val leftSplit: LeftSplit
+class InsertLeftSplitQuery(
+    dbmsInstancesConfiguration: DbmsInstancesConfiguration,
+    private val leftSplit: LeftSplit,
+    toPrimary: Boolean
 ) : Query {
 
-    // CREATE (u)-[:CREATES]->(p)
-    // CREATE (u)-[:LIKES]->(l)-[:ON]->(p)
-    // CREATE (u)-[:COMMENTS]->(c)-[:ON]->(p);
+    private val fabric = dbmsInstancesConfiguration.fabricName
+
+    private val database = if (toPrimary) {
+        dbmsInstancesConfiguration.leftSplit.primaryDatabaseName
+    } else {
+        dbmsInstancesConfiguration.leftSplit.secondaryDatabaseName
+    }
+
     override fun cypherize(): List<String> {
         val users = leftSplit.users
         val posts = leftSplit.posts
@@ -17,15 +25,16 @@ class SeedLeftSplitQuery(
 
         val usersCypher = users.map {
             """
+            USE $fabric.$database
             CREATE (u:${User::class.simpleName} {
                 ${User::id.name}: "${it.id}",
                 ${User::birthDate.name}: "${it.birthDate}",
                 ${User::interests.name}: ${
-                it.interests.joinToString(
-                    prefix = "[",
-                    postfix = "]"
-                ) { interest -> "\"$interest\"" }
-            },
+                    it.interests.joinToString(
+                        prefix = "[",
+                        postfix = "]"
+                    ) { interest -> "\"$interest\"" }
+                },
                 ${User::lastActiveAt.name}: "${it.lastActiveAt}",
                 ${User::location.name}: "${it.location}",
                 ${User::registeredAt.name}: "${it.registeredAt}",
@@ -36,6 +45,7 @@ class SeedLeftSplitQuery(
 
         val postsCypher = posts.map {
             """
+            USE $fabric.$database
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
             CREATE (p:${Post::class.simpleName} {
                 ${Post::id.name}: "${it.id}",
@@ -48,6 +58,7 @@ class SeedLeftSplitQuery(
 
         val commentsCypher = comments.map {
             """
+            USE $fabric.$database
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
             MATCH (p:${Post::class.simpleName} {${Post::id.name}: "${it.post.id}"})
             CREATE (c:${Comment::class.simpleName} {
@@ -61,13 +72,14 @@ class SeedLeftSplitQuery(
 
         val likesCypher = likes.map {
             """
+            USE $fabric.$database
             MATCH (u:${User::class.simpleName} {${User::id.name}: "${it.user.id}"})
             MATCH (p:${Post::class.simpleName} {${Post::id.name}: "${it.post.id}"})
             CREATE (l:${Like::class.simpleName} {
                 ${Like::id.name}: "${it.id}",
                 ${Like::likedAt.name}: "${it.likedAt}"
             })
-            CREATE (u)-[:LIKED]->(l)-[:A]->(p);
+            CREATE (u)-[:LIKES]->(l)-[:A]->(p);
             """.trimIndent()
         }
 
