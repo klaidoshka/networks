@@ -49,30 +49,43 @@ val networksModule = module {
     }
 
     // Query
+    factory { (database: String) ->
+        DetachDeleteAllQuery(
+            database = database,
+            dbmsInstancesConfiguration = get()
+        )
+    }
+
     factory { (leftSplit: LeftSplit, toPrimary: Boolean) ->
         InsertLeftSplitQuery(
-            get(),
-            leftSplit,
-            toPrimary
+            dbmsInstancesConfiguration = get(),
+            leftSplit = leftSplit,
+            toPrimary = toPrimary
         )
     }
 
     factory { (rightSplit: RightSplit, toPrimary: Boolean) ->
         InsertRightSplitQuery(
-            get(),
-            rightSplit,
-            toPrimary
+            dbmsInstancesConfiguration = get(),
+            rightSplit = rightSplit,
+            toPrimary = toPrimary
         )
     }
 
-    single { DetachDeleteAllQuery(get()) }
-    single { MatchAllQuery(get()) }
+    factory { (database: String) ->
+        MatchAllQuery(
+            database = database,
+            dbmsInstancesConfiguration = get()
+        )
+    }
 
     // Service
     single<GraphDatabaseService> {
         GraphDatabaseServiceImpl(
             dbmsInstancesConfiguration = get(),
-            detachDeleteAllQuery = get(),
+            detachDeleteAllQueryFactory = { database ->
+                get<DetachDeleteAllQuery> { parametersOf(database) }
+            },
             insertLeftSplitQueryFactory = { leftSplit, toPrimary ->
                 get<InsertLeftSplitQuery> {
                     parametersOf(
@@ -90,7 +103,7 @@ val networksModule = module {
                 }
             },
             leftSplitFactory = get(),
-            matchAllQuery = get(),
+            matchAllQueryFactory = { database -> get<MatchAllQuery> { parametersOf(database) } },
             rightSplitFactory = get(),
             userFactory = get(named("userFactory"))
         )

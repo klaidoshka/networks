@@ -4,6 +4,8 @@ import configuration.DbmsInstancesConfiguration
 import factory.Factory
 import factory.LeftSplitFactory
 import factory.RightSplitFactory
+import handler.ParallelTransactionsHandler
+import handler.ParallelTransactionsHandler.TransactionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -21,13 +23,15 @@ import java.time.temporal.ChronoUnit
 import java.util.logging.Logger
 import kotlin.time.Duration.Companion.seconds
 
+// TODO: Create graph labels indexes to speed up the queries (which we do not have).
+
 class GraphDatabaseServiceImpl(
     private val dbmsInstancesConfiguration: DbmsInstancesConfiguration,
-    private val detachDeleteAllQuery: DetachDeleteAllQuery,
-    private val insertLeftSplitQueryFactory: (LeftSplit, Boolean) -> InsertLeftSplitQuery,
-    private val insertRightSplitQueryFactory: (RightSplit, Boolean) -> InsertRightSplitQuery,
+    private val detachDeleteAllQueryFactory: (String) -> DetachDeleteAllQuery,
+    private val insertLeftSplitQueryFactory: (LeftSplit, toPrimary: Boolean) -> InsertLeftSplitQuery,
+    private val insertRightSplitQueryFactory: (RightSplit, toPrimary: Boolean) -> InsertRightSplitQuery,
     private val leftSplitFactory: LeftSplitFactory,
-    private val matchAllQuery: MatchAllQuery,
+    private val matchAllQueryFactory: (String) -> MatchAllQuery,
     private val rightSplitFactory: RightSplitFactory,
     private val userFactory: Factory<User>
 ) : GraphDatabaseService {
@@ -36,153 +40,184 @@ class GraphDatabaseServiceImpl(
     private lateinit var driver: Driver
 
     /**
-     * Begins a session and executes the given block of code.
+     * Execute parallel operations on the database. If any of the transactions fail, all transactions
+     * are rolled back.
      *
-     * @param block The block of code to execute.
+     * In case of **success**, the holding result is of type [Map] with the id of the transaction as the key
+     * and the result of the transaction as the value.
      *
-     * @return The result of the block of code.
+     * @param transactions The transactions to execute.
+     *
+     * @return [TransactionResult.Success] if all transactions were successful, [TransactionResult.Failure]
+     * otherwise.
      */
-    private fun <R> beginSession(block: Session.() -> R): R {
-        return driver
-            .session(SessionConfig.forDatabase(dbmsInstancesConfiguration.compositeName))
-            .use { session ->
-                block(session)
+    private suspend fun <K> runParallelSessions(
+        transactions: Map<K, (Transaction) -> Any>
+    ): TransactionResult {
+        return ParallelTransactionsHandler(
+            sessionFactory = { driver.session(SessionConfig.forDatabase(dbmsInstancesConfiguration.compositeName)) },
+            transactions = transactions
+        )
+            .handle()
+            .also {
+                if (it is TransactionResult.Failure) {
+                    throw RuntimeException("Failed to execute transactions: ${it.error.message}")
+                }
             }
     }
 
     override suspend fun deleteGraph() {
-        withContext(Dispatchers.IO) {
-            beginSession {
-                executeWrite { context ->
-                    detachDeleteAllQuery
+        runParallelSessions(
+            dbmsInstancesConfiguration.databaseNames.associateWith { database ->
+                { transaction ->
+                    detachDeleteAllQueryFactory(database)
                         .cypherize()
                         .forEach { query ->
-                            context
+                            transaction
                                 .run(query)
                                 .consume()
                         }
                 }
             }
-        }
+        )
     }
-    
-    // TODO: Create graph labels indexes to speed up the queries (which we do not have).
+
     override suspend fun generateNodes(amount: Int) {
-        withContext(Dispatchers.IO) {
-            val users = userFactory.create(amount)
+        val users = userFactory.create(amount)
+        val (leftSplit1, leftSplit2) = splitHorizontally(leftSplitFactory.create(users))
+        val (rightSplit1, rightSplit2) = splitHorizontally(rightSplitFactory.create(users))
 
-            beginSession {
-                executeWrite { context ->
-                    generateNodesInLeftSplit(
-                        context = context,
-                        users = users
-                    )
+        runParallelSessions(
+            listOf(
+                leftSplit1,
+                leftSplit2,
+                rightSplit1,
+                rightSplit2
+            )
+                .associateWith { split ->
+                    { transaction ->
+                        when (split) {
+                            is LeftSplit -> generateNodesInLeftSplit(
+                                transaction,
+                                split,
+                                leftSplit1
+                            )
 
-                    generateNodesInRightSplit(
-                        context = context,
-                        users = users
-                    )
+                            is RightSplit -> generateNodesInRightSplit(
+                                transaction,
+                                split,
+                                rightSplit1
+                            )
+                        }
+                    }
                 }
-            }
-        }
+        )
     }
 
-    // TODO: Create graph labels indexes to speed up the queries (which we do not have).
     override suspend fun generateNodesInLeftSplit(amount: Int) {
-        withContext(Dispatchers.IO) {
-            val users = userFactory.create(amount)
+        val users = userFactory.create(amount)
+        val (leftSplit1, leftSplit2) = splitHorizontally(leftSplitFactory.create(users))
 
-            beginSession {
-                executeWrite { context ->
-                    generateNodesInLeftSplit(
-                        context = context,
-                        users = users
-                    )
+        runParallelSessions(
+            listOf(
+                leftSplit1,
+                leftSplit2
+            )
+                .associateWith { split ->
+                    { transaction ->
+                        generateNodesInLeftSplit(
+                            transaction,
+                            split,
+                            leftSplit1
+                        )
+                    }
                 }
-            }
-        }
+        )
     }
 
     private fun generateNodesInLeftSplit(
-        context: TransactionContext,
-        users: List<User>
+        transaction: Transaction,
+        leftSplit: LeftSplit,
+        leftSplitPrimary: LeftSplit
     ) {
-        val (leftSplit1, leftSplit2) = splitHorizontally(leftSplitFactory.create(users))
-
-        for (leftSplit in listOf(
-            leftSplit1,
-            leftSplit2
-        )) {
-            insertLeftSplitQueryFactory(
-                leftSplit,
-                leftSplit == leftSplit1
-            )
-                .cypherize()
-                .forEach { query ->
-                    context
-                        .run(query)
-                        .consume()
-                }
-        }
+        insertLeftSplitQueryFactory(
+            leftSplit,
+            leftSplit == leftSplitPrimary
+        )
+            .cypherize()
+            .forEach { query ->
+                transaction
+                    .run(query)
+                    .consume()
+            }
     }
 
-    // TODO: Create graph labels indexes to speed up the queries (which we do not have).
     override suspend fun generateNodesInRightSplit(amount: Int) {
-        withContext(Dispatchers.IO) {
-            val users = userFactory.create(amount)
+        val users = userFactory.create(amount)
+        val (rightSplit1, rightSplit2) = splitHorizontally(rightSplitFactory.create(users))
 
-            beginSession {
-                executeWrite { context ->
-                    generateNodesInRightSplit(
-                        context = context,
-                        users = users
-                    )
+        runParallelSessions(
+            listOf(
+                rightSplit1,
+                rightSplit2
+            )
+                .associateWith { split ->
+                    { transaction ->
+                        generateNodesInRightSplit(
+                            transaction,
+                            split,
+                            rightSplit1
+                        )
+                    }
                 }
-            }
-        }
+        )
     }
 
     private fun generateNodesInRightSplit(
-        context: TransactionContext,
-        users: List<User>
+        transaction: Transaction,
+        rightSplit: RightSplit,
+        rightSplitPrimary: RightSplit
     ) {
-        val (rightSplit1, rightSplit2) = splitHorizontally(rightSplitFactory.create(users))
-
-        for (rightSplit in listOf(
-            rightSplit1,
-            rightSplit2
-        )) {
-            insertRightSplitQueryFactory(
-                rightSplit,
-                rightSplit == rightSplit1
-            )
-                .cypherize()
-                .forEach { query ->
-                    context
-                        .run(query)
-                        .consume()
-                }
-        }
+        insertRightSplitQueryFactory(
+            rightSplit,
+            rightSplit == rightSplitPrimary
+        )
+            .cypherize()
+            .forEach { query ->
+                transaction
+                    .run(query)
+                    .consume()
+            }
     }
 
     override suspend fun getGraph(): List<List<Map<String, Any>>> {
-        return beginSession {
-            executeRead { context ->
-                matchAllQuery
-                    .cypherize()
-                    .flatMap { query ->
-                        context
-                            .run(query)
-                            .list { record ->
-                                record
-                                    .values()
-                                    .map { value ->
-                                        value.asMap()
-                                    }
-                            }
-                    }
+        val result = runParallelSessions(
+            dbmsInstancesConfiguration.databaseNames.associateWith { database ->
+                { transaction ->
+                    matchAllQueryFactory(database)
+                        .cypherize()
+                        .flatMap { query ->
+                            transaction
+                                .run(query)
+                                .list { record ->
+                                    record
+                                        .values()
+                                        .map { value ->
+                                            value.asMap()
+                                        }
+                                }
+                        }
+                }
             }
+        )
+
+        if (result is TransactionResult.Failure) {
+            return emptyList()
         }
+
+        @Suppress("UNCHECKED_CAST")
+        return (result as? TransactionResult.Success<Map<String, List<List<Map<String, Any>>>>>)
+            ?.result?.values?.flatten() ?: emptyList()
     }
 
     override fun splitHorizontally(leftSplit: LeftSplit): Pair<LeftSplit, LeftSplit> {
@@ -238,7 +273,11 @@ class GraphDatabaseServiceImpl(
                     AuthTokens.basic(
                         dbmsInstancesConfiguration.credentials.username,
                         dbmsInstancesConfiguration.credentials.password
-                    )
+                    ),
+                    Config
+                        .builder()
+                        .withoutEncryption()
+                        .build()
                 )
 
                 driver.verifyConnectivity()

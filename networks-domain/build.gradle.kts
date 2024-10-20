@@ -14,7 +14,6 @@ dependencies {
     implementationExposed(libs.ktor.server.netty)
     implementationExposed(libs.logback.classic)
     implementationExposed(libs.neo4j.driver)
-    implementationExposed(libs.neo4j.fabric)
     implementationExposed(libs.typesafe.config)
 }
 

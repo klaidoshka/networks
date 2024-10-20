@@ -4,7 +4,6 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.reflect.*
 import service.GraphDatabaseService
 
 object Routes {
@@ -23,14 +22,16 @@ object Routes {
             route("/api/v1/graph") {
                 get("/display") {
                     call.respond(
-                        databaseService.getGraph(),
-                        typeInfo = typeInfo<List<List<Map<String, Any>>>>()
+                        HttpStatusCode.OK,
+                        databaseService.getGraph()
                     )
                 }
 
                 post("/delete") {
                     try {
                         databaseService.deleteGraph()
+
+                        call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
                         call.respond(HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
@@ -51,6 +52,8 @@ object Routes {
 
                     try {
                         databaseService.generateNodesInLeftSplit(amount)
+
+                        call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
                         call.respond(HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
@@ -71,6 +74,8 @@ object Routes {
 
                     try {
                         databaseService.generateNodesInRightSplit(amount)
+
+                        call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
                         call.respond(HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
@@ -91,6 +96,8 @@ object Routes {
 
                     try {
                         databaseService.generateNodes(amount)
+
+                        call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
                         call.respond(HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"

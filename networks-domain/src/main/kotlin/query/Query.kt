@@ -1,9 +1,9 @@
 package query
 
+// TODO: Use injected parameters, return a Map of parameters to use with the query.
+
 /**
  * Represents a query to be executed.
- * 
- * TODO: Use injected parameters, return a Map of parameters to use with the query.
  */
 fun interface Query {
 

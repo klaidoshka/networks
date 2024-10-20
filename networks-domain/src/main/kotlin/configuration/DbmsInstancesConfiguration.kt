@@ -28,6 +28,21 @@ interface DbmsInstancesConfiguration {
     val compositeName: String
 
     /**
+     * List of all database names (4):
+     * - LeftSplit primary database
+     * - LeftSplit secondary database
+     * - RightSplit primary database
+     * - RightSplit secondary database
+     */
+    val databaseNames
+        get() = listOf(
+            leftSplit.primaryDatabaseName,
+            leftSplit.secondaryDatabaseName,
+            rightSplit.primaryDatabaseName,
+            rightSplit.secondaryDatabaseName
+        )
+
+    /**
      * Instance of the data left-split.
      */
     val leftSplit: Instance
