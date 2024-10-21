@@ -13,9 +13,16 @@ class MatchAllQuery(
         return listOf(
             """
             USE `$composite`.`$database`
-            MATCH (n)
-            RETURN n
+            MATCH ($NODE_KEY)-[$RELATIONSHIP_KEY]-($RELATED_NODE_KEY)
+            RETURN DISTINCT $NODE_KEY, $RELATIONSHIP_KEY, $RELATED_NODE_KEY
             """.trimIndent()
         )
+    }
+
+    companion object {
+
+        const val NODE_KEY = "n"
+        const val RELATED_NODE_KEY = "m"
+        const val RELATIONSHIP_KEY = "r"
     }
 }

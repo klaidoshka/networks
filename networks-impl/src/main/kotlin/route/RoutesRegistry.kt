@@ -1,30 +1,50 @@
 package route
 
+import com.squareup.moshi.Moshi
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.apache.commons.lang3.reflect.TypeLiteral
 import service.GraphDatabaseService
 
-object Routes {
+class RoutesRegistry(
+    private val databaseService: GraphDatabaseService,
+    private val moshi: Moshi
+) {
 
-    fun Application.configureRouting(databaseService: GraphDatabaseService) {
+    /**
+     * Configures the routing for the application.
+     *
+     * @param application The application to configure the routing for.
+     */
+    fun configureRouting(application: Application) = application.run {
+        val mapJsonAdapter = moshi.adapter<Map<String, Any>>(
+            object : TypeLiteral<Map<String, Any>>() {}.type
+        )
+
         routing {
             get {
                 call.respondText(
-                    this::class.java.classLoader
+                    contentType = ContentType.Text.Html,
+                    text = this::class.java.classLoader
                         .getResource("./static/index.html")!!
-                        .readText(),
-                    ContentType.Text.Html
+                        .readText()
                 )
             }
 
             route("/api/v1/graph") {
                 get("/display") {
-                    call.respond(
-                        HttpStatusCode.OK,
-                        databaseService.getGraph()
-                    )
+                    try {
+                        call.respondText(
+                            contentType = ContentType.Application.Json,
+                            text = mapJsonAdapter.toJson(databaseService.getGraph())
+                        )
+                    } catch (e: Exception) {
+                        call.respondText(status = HttpStatusCode.InternalServerError) {
+                            e.message ?: "Try again later"
+                        }
+                    }
                 }
 
                 post("/delete") {
@@ -33,7 +53,7 @@ object Routes {
 
                         call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError) {
+                        call.respondText(status = HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
                         }
                     }
@@ -55,7 +75,7 @@ object Routes {
 
                         call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError) {
+                        call.respondText(status = HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
                         }
                     }
@@ -77,7 +97,7 @@ object Routes {
 
                         call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError) {
+                        call.respondText(status = HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
                         }
                     }
@@ -99,7 +119,7 @@ object Routes {
 
                         call.respond(HttpStatusCode.OK)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError) {
+                        call.respondText(status = HttpStatusCode.InternalServerError) {
                             e.message ?: "Try again later"
                         }
                     }

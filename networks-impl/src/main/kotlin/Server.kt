@@ -8,7 +8,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
-import route.Routes.configureRouting
+import route.RoutesRegistry
 import service.GraphDatabaseService
 
 fun main() {
@@ -46,7 +46,9 @@ private fun Application.configure(
         databaseService.start()
     }
 
-    configureRouting(databaseService)
+    val routesRegistry by koin.inject<RoutesRegistry>()
+
+    routesRegistry.configureRouting(this)
 }
 
 private fun shutdown(

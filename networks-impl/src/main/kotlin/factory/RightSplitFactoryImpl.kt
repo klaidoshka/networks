@@ -57,48 +57,46 @@ class RightSplitFactoryImpl(
         val groups = groupFactory
             .create(users.size)
             .map {
+                val user = usersSplit.random()
+
                 it.copy(
                     createdAt = users
-                        .first { u -> it.user.id == u.id }
+                        .first { u -> user.id == u.id }
                         .adjust(it.createdAt)
                         .minusSeconds(3600 * 24 * 14),
                     user = usersSplit.random()
                 )
             }
 
-        val memberships = if (users.size < 2) emptyList() else membershipFactory
+        val memberships = membershipFactory
             .create(users.size)
-            .flatMap {
+            .zip(groups)
+            .map { (membership, group) ->
+                membership.copy(
+                    group = group,
+                    since = group.createdAt,
+                    user = group.user
+                )
+            } + membershipFactory
+            .create(users.size / 2)
+            .mapNotNull {
                 val group = groups.random()
 
-                listOf(
-                    it.copy(
-                        group = group,
-                        since = group.createdAt,
-                        user = group.user
-                    )
+                var member: UserSplitRight
+
+                do {
+                    member = usersSplit.random()
+                } while (member == group.user)
+
+                if (member.lastActiveAt.isBefore(group.createdAt)) {
+                    return@mapNotNull null
+                }
+
+                it.copy(
+                    group = group,
+                    since = group.createdAt.plusSeconds(3600 * 24),
+                    user = member
                 )
-                    .let { memberships ->
-                        if (Math.random() < 0.3) {
-                            var member: UserSplitRight
-
-                            do {
-                                member = usersSplit.random()
-                            } while (member == group.user)
-
-                            if (member.lastActiveAt.isBefore(group.createdAt)) {
-                                return@flatMap memberships
-                            }
-
-                            memberships + it.copy(
-                                group = group,
-                                since = group.createdAt.plusSeconds(3600 * 24),
-                                user = member
-                            )
-                        } else {
-                            memberships
-                        }
-                    }
             }
 
         return RightSplit(

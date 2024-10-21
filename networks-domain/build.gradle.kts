@@ -15,6 +15,8 @@ dependencies {
     implementationExposed(libs.logback.classic)
     implementationExposed(libs.neo4j.driver)
     implementationExposed(libs.typesafe.config)
+    implementationExposed(libs.moshi)
+    implementationExposed(libs.moshi.kotlin)
 }
 
 kotlin {

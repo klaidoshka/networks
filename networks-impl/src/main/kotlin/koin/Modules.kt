@@ -1,5 +1,7 @@
 package koin
 
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import configuration.DbmsInstancesConfiguration
@@ -7,45 +9,57 @@ import configuration.ExternalDbmsInstancesConfiguration
 import factory.*
 import model.*
 import org.koin.core.parameter.parametersOf
-import org.koin.core.qualifier.named
+import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 import query.DetachDeleteAllQuery
 import query.InsertLeftSplitQuery
 import query.InsertRightSplitQuery
 import query.MatchAllQuery
+import route.RoutesRegistry
 import service.GraphDatabaseService
 import service.GraphDatabaseServiceImpl
 
+/**
+ * The module containing the definitions for the network components.
+ */
 val networksModule = module {
     // Configuration
     single<Config> { ConfigFactory.load() }
     single<DbmsInstancesConfiguration> { ExternalDbmsInstancesConfiguration(get()) }
 
     // Factory
-    single<Factory<Comment>>(named("commentFactory")) { CommentFactory }
-    single<Factory<Friendship>>(named("friendshipFactory")) { FriendshipFactory }
-    single<Factory<Group>>(named("groupFactory")) { GroupFactory }
-    single<Factory<Like>>(named("likeFactory")) { LikeFactory }
-    single<Factory<Membership>>(named("membershipFactory")) { MembershipFactory }
-    single<Factory<Message>>(named("messageFactory")) { MessageFactory }
-    single<Factory<Post>>(named("postFactory")) { PostFactory }
-    single<Factory<User>>(named("userFactory")) { UserFactory }
+    single<Factory<Comment>>(qualifier<CommentFactory>()) { CommentFactory }
+    single<Factory<Friendship>>(qualifier<FriendshipFactory>()) { FriendshipFactory }
+    single<Factory<Group>>(qualifier<GroupFactory>()) { GroupFactory }
+    single<Factory<Like>>(qualifier<LikeFactory>()) { LikeFactory }
+    single<Factory<Membership>>(qualifier<MembershipFactory>()) { MembershipFactory }
+    single<Factory<Message>>(qualifier<MessageFactory>()) { MessageFactory }
+    single<Factory<Post>>(qualifier<PostFactory>()) { PostFactory }
+    single<Factory<User>>(qualifier<UserFactory>()) { UserFactory }
 
     single<LeftSplitFactory> {
         LeftSplitFactoryImpl(
-            get(named("commentFactory")),
-            get(named("likeFactory")),
-            get(named("postFactory"))
+            commentFactory = get(qualifier<CommentFactory>()),
+            likeFactory = get(qualifier<LikeFactory>()),
+            postFactory = get(qualifier<PostFactory>())
         )
     }
 
     single<RightSplitFactory> {
         RightSplitFactoryImpl(
-            get(named("commentFactory")),
-            get(named("likeFactory")),
-            get(named("postFactory")),
-            get(named("userFactory"))
+            friendshipFactory = get(qualifier<FriendshipFactory>()),
+            groupFactory = get(qualifier<GroupFactory>()),
+            membershipFactory = get(qualifier<MembershipFactory>()),
+            messageFactory = get(qualifier<MessageFactory>())
         )
+    }
+
+    // Moshi
+    single<Moshi> {
+        Moshi
+            .Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
     }
 
     // Query
@@ -79,6 +93,14 @@ val networksModule = module {
         )
     }
 
+    // Ktor
+    single<RoutesRegistry> {
+        RoutesRegistry(
+            databaseService = get(),
+            moshi = get()
+        )
+    }
+
     // Service
     single<GraphDatabaseService> {
         GraphDatabaseServiceImpl(
@@ -105,7 +127,7 @@ val networksModule = module {
             leftSplitFactory = get(),
             matchAllQueryFactory = { database -> get<MatchAllQuery> { parametersOf(database) } },
             rightSplitFactory = get(),
-            userFactory = get(named("userFactory"))
+            userFactory = get(qualifier<UserFactory>())
         )
     }
 }

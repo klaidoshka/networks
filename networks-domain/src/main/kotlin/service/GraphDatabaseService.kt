@@ -40,9 +40,9 @@ interface GraphDatabaseService {
     /**
      * Get the graph
      *
-     * @return List of nodes and relationships
+     * @return Nodes and relationships mapped into cytoscape library format
      */
-    suspend fun getGraph(): List<List<Map<String, Any>>>
+    suspend fun getGraph(): Map<String, Any>
 
     /**
      * Split the graph data horizontally

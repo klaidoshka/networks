@@ -23,10 +23,10 @@ class InsertRightSplitQuery(
             USE `$composite`.`$database`
             MATCH (u1:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.user1.id}"})
             MATCH (u2:${User::class.simpleName} {${UserSplitRight::id.name}: "${it.user2.id}"})
-            CREATE (u1)-[:FRIENDS]-(f:${Friendship::class.simpleName} {
+            CREATE (u1)-[:FRIENDS]->(f:${Friendship::class.simpleName} {
                 ${Friendship::id.name}: "${it.id}",
                 ${Friendship::since.name}: "${it.since}"
-            })-[:WITH]-(u2);
+            })-[:WITH]->(u2);
             """.trimIndent()
         }
 

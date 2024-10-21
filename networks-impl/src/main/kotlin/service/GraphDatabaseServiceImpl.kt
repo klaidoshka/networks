@@ -51,17 +51,20 @@ class GraphDatabaseServiceImpl(
      * @return [TransactionResult.Success] if all transactions were successful, [TransactionResult.Failure]
      * otherwise.
      */
-    private suspend fun <K> runParallelSessions(
-        transactions: Map<K, (Transaction) -> Any>
-    ): TransactionResult {
+    private suspend fun <K, R> runParallelSessions(
+        transactions: Map<K, (Transaction) -> R>
+    ): Map<K, R> {
         return ParallelTransactionsHandler(
             sessionFactory = { driver.session(SessionConfig.forDatabase(dbmsInstancesConfiguration.compositeName)) },
             transactions = transactions
         )
             .handle()
-            .also {
+            .let {
                 if (it is TransactionResult.Failure) {
                     throw RuntimeException("Failed to execute transactions: ${it.error.message}")
+                } else {
+                    @Suppress("UNCHECKED_CAST")
+                    (it as TransactionResult.Success<K, R>).result
                 }
             }
     }
@@ -190,7 +193,7 @@ class GraphDatabaseServiceImpl(
             }
     }
 
-    override suspend fun getGraph(): List<List<Map<String, Any>>> {
+    override suspend fun getGraph(): Map<String, Any> {
         val result = runParallelSessions(
             dbmsInstancesConfiguration.databaseNames.associateWith { database ->
                 { transaction ->
@@ -199,25 +202,50 @@ class GraphDatabaseServiceImpl(
                         .flatMap { query ->
                             transaction
                                 .run(query)
-                                .list { record ->
-                                    record
-                                        .values()
-                                        .map { value ->
-                                            value.asMap()
-                                        }
+                                .list()
+                                .map { record ->
+                                    Triple(
+                                        record[MatchAllQuery.NODE_KEY].asNode(),
+                                        record[MatchAllQuery.RELATIONSHIP_KEY].asRelationship(),
+                                        record[MatchAllQuery.RELATED_NODE_KEY].asNode()
+                                    )
                                 }
                         }
                 }
             }
         )
 
-        if (result is TransactionResult.Failure) {
-            return emptyList()
-        }
+        val elements = result.values
+            .flatten()
+            .flatMap { (node, relationship, relatedNode) ->
+                listOf(
+                    mapOf(
+                        "data" to mapOf(
+                            "id" to node.elementId(),
+                            "label" to node
+                                .labels()
+                                .joinToString(",")
+                        )
+                    ),
+                    mapOf(
+                        "data" to mapOf(
+                            "id" to relationship.elementId(),
+                            "source" to relationship.startNodeElementId(),
+                            "target" to relationship.endNodeElementId()
+                        )
+                    ),
+                    mapOf(
+                        "data" to mapOf(
+                            "id" to relatedNode.elementId(),
+                            "label" to relatedNode
+                                .labels()
+                                .joinToString(",")
+                        )
+                    )
+                )
+            }
 
-        @Suppress("UNCHECKED_CAST")
-        return (result as? TransactionResult.Success<Map<String, List<List<Map<String, Any>>>>>)
-            ?.result?.values?.flatten() ?: emptyList()
+        return mapOf("elements" to elements)
     }
 
     override fun splitHorizontally(leftSplit: LeftSplit): Pair<LeftSplit, LeftSplit> {
@@ -273,11 +301,7 @@ class GraphDatabaseServiceImpl(
                     AuthTokens.basic(
                         dbmsInstancesConfiguration.credentials.username,
                         dbmsInstancesConfiguration.credentials.password
-                    ),
-                    Config
-                        .builder()
-                        .withoutEncryption()
-                        .build()
+                    )
                 )
 
                 driver.verifyConnectivity()
