@@ -111,6 +111,22 @@ val queryModule = module {
             toPrimary = toPrimary
         )
     }
+
+    factory { (database: String, id: String) ->
+        UserGetLeftSplitQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            id = id
+        )
+    }
+
+    factory { (database: String, id: String) ->
+        UserGetRightSplitQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            id = id
+        )
+    }
 }
 
 val routeModule = module {
@@ -136,7 +152,7 @@ val serviceModule = module {
     }
 
     single<DatabaseSplitService> {
-        DatabaseSplitServiceImpl()
+        DatabaseSplitServiceImpl(userService = get())
     }
 
     single<FriendshipService> {
@@ -201,6 +217,29 @@ val serviceModule = module {
             leftSplitFactory = get(),
             rightSplitFactory = get(),
             userFactory = get(qualifier<UserFactory>())
+        )
+    }
+
+    single<UserService> {
+        UserServiceImpl(
+            databaseService = get(),
+            dbmsInstancesConfiguration = get(),
+            userGetLeftQueryFactory = { database, id ->
+                get<UserGetLeftSplitQuery> {
+                    parametersOf(
+                        database,
+                        id
+                    )
+                }
+            },
+            userGetRightQueryFactory = { database, id ->
+                get<UserGetRightSplitQuery> {
+                    parametersOf(
+                        database,
+                        id
+                    )
+                }
+            }
         )
     }
 }

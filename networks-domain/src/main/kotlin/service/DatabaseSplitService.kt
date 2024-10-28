@@ -1,7 +1,6 @@
 package service
 
-import model.LeftSplit
-import model.RightSplit
+import model.*
 import java.time.LocalDate
 
 /**
@@ -22,7 +21,7 @@ interface DatabaseSplitService {
      *
      * @return True if the split is in primary, false otherwise - is in secondary split.
      */
-    fun isInPrimary(
+    suspend fun isInPrimary(
         userId1: String,
         userId2: String,
         date: LocalDate
@@ -32,15 +31,75 @@ interface DatabaseSplitService {
      * Check if the associated to the date data is in primary horizontal split. If not, it is in
      * secondary split.
      *
-     * @param user User ID
+     * @param userId User ID
+     * @param date Date to check
+     *
+     * @return True if the split is in primary, false otherwise - is in secondary split.
+     */
+    suspend fun isInPrimary(
+        userId: String,
+        date: LocalDate
+    ): Boolean
+
+    /**
+     * Check if the associated to the date data is in primary horizontal split. If not, it is in
+     * secondary split.
+     *
+     * @param user1 First user
+     * @param user2 Second user
      * @param date Date to check
      *
      * @return True if the split is in primary, false otherwise - is in secondary split.
      */
     fun isInPrimary(
-        user: String,
+        user1: UserSplitLeft,
+        user2: UserSplitLeft,
         date: LocalDate
-    )
+    ): Boolean
+
+    /**
+     * Check if the associated to the date data is in primary horizontal split. If not, it is in
+     * secondary split.
+     *
+     * @param user User to check
+     * @param date Date to check
+     *
+     * @return True if the split is in primary, false otherwise - is in secondary split.
+     */
+    fun isInPrimary(
+        user: UserSplitLeft,
+        date: LocalDate
+    ): Boolean
+
+    /**
+     * Check if the associated to the date data is in primary horizontal split. If not, it is in
+     * secondary split.
+     *
+     * @param user1 First user
+     * @param user2 Second user
+     * @param date Date to check
+     *
+     * @return True if the split is in primary, false otherwise - is in secondary split.
+     */
+    fun isInPrimary(
+        user1: UserSplitRight,
+        user2: UserSplitRight,
+        date: LocalDate
+    ): Boolean
+
+    /**
+     * Check if the associated to the date data is in primary horizontal split. If not, it is in
+     * secondary split.
+     *
+     * @param user User to check
+     * @param date Date to check
+     *
+     * @return True if the split is in primary, false otherwise - is in secondary split.
+     */
+    fun isInPrimary(
+        user: UserSplitRight,
+        date: LocalDate
+    ): Boolean
 
     /**
      * Split the graph data horizontally
@@ -49,7 +108,7 @@ interface DatabaseSplitService {
      *
      * @return Pair of left splits, divided horizontally by some criteria
      */
-    fun split(leftSplit: LeftSplit): Pair<LeftSplit, LeftSplit>
+    suspend fun split(leftSplit: LeftSplit): Pair<LeftSplit, LeftSplit>
 
     /**
      * Split the graph data horizontally
@@ -58,5 +117,5 @@ interface DatabaseSplitService {
      *
      * @return Pair of right splits, divided horizontally by some criteria
      */
-    fun split(rightSplit: RightSplit): Pair<RightSplit, RightSplit>
+    suspend fun split(rightSplit: RightSplit): Pair<RightSplit, RightSplit>
 }

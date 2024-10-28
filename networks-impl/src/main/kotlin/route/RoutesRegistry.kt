@@ -166,8 +166,12 @@ class RoutesRegistry(
                 )
 
                 call.respond(
-                    HttpStatusCode.Created,
-                    result
+                    result.let {
+                        mapOf(
+                            "id" to it.id,
+                            "since" to it.since.toString()
+                        )
+                    }
                 )
             } catch (e: Exception) {
                 call.respondText(status = HttpStatusCode.InternalServerError) {

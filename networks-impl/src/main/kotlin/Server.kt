@@ -1,4 +1,7 @@
-import io.ktor.serialization.kotlinx.json.*
+import com.fasterxml.jackson.core.util.DefaultIndenter
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
+import com.fasterxml.jackson.databind.SerializationFeature
+import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -8,7 +11,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
 import route.RoutesRegistry
@@ -33,10 +35,22 @@ fun main() {
         host = "0.0.0.0"
     ) {
         install(ContentNegotiation) {
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-            })
+            jackson {
+                configure(
+                    SerializationFeature.INDENT_OUTPUT,
+                    true
+                )
+                
+                setDefaultPrettyPrinter(DefaultPrettyPrinter().apply {
+                    indentArraysWith(DefaultPrettyPrinter.FixedSpaceIndenter.instance)
+                    indentObjectsWith(
+                        DefaultIndenter(
+                            "  ",
+                            "\n"
+                        )
+                    )
+                })
+            }
         }
 
         configure(

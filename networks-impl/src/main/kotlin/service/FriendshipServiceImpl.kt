@@ -47,17 +47,23 @@ class FriendshipServiceImpl(
 
     override suspend fun delete(id: String) {
         // Updating in all fragments, since cannot know where the friendship is stored
-        databaseService.driver.runInParallel(
-            dbmsInstancesConfiguration.compositeName,
-            dbmsInstancesConfiguration.rightSplit.databaseNames.associateWith { database ->
-                { transaction ->
-                    friendshipDeleteQueryFactory(
-                        database,
-                        id
-                    )(transaction)
+        val result = databaseService.driver
+            .runInParallel(
+                dbmsInstancesConfiguration.compositeName,
+                dbmsInstancesConfiguration.rightSplit.databaseNames.associateWith { database ->
+                    { transaction ->
+                        friendshipDeleteQueryFactory(
+                            database,
+                            id
+                        )(transaction)
+                    }
                 }
-            }
-        )
+            ).values
+            .sum()
+
+        if (result == 0) {
+            throw IllegalArgumentException("Friendship with id $id not found")
+        }
     }
 
     override suspend fun getAll(): List<Map<String, Any>> {
@@ -76,17 +82,23 @@ class FriendshipServiceImpl(
         since: Instant
     ) {
         // Updating in all fragments, since cannot know where the friendship is stored
-        databaseService.driver.runInParallel(
-            dbmsInstancesConfiguration.compositeName,
-            dbmsInstancesConfiguration.rightSplit.databaseNames.associateWith { database ->
-                { transaction ->
-                    friendshipUpdateQueryFactory(
-                        database,
-                        id,
-                        since
-                    )(transaction)
+        val result = databaseService.driver
+            .runInParallel(
+                dbmsInstancesConfiguration.compositeName,
+                dbmsInstancesConfiguration.rightSplit.databaseNames.associateWith { database ->
+                    { transaction ->
+                        friendshipUpdateQueryFactory(
+                            database,
+                            id,
+                            since
+                        )(transaction)
+                    }
                 }
-            }
-        )
+            ).values
+            .sum()
+
+        if (result == 0) {
+            throw IllegalArgumentException("Friendship with id $id not found")
+        }
     }
 }

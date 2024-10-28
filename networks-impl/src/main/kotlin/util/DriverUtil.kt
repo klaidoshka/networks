@@ -6,6 +6,9 @@ import org.neo4j.driver.Driver
 import org.neo4j.driver.SessionConfig
 import org.neo4j.driver.Transaction
 
+/**
+ * Utilities for driver operations.
+ */
 object DriverUtil {
 
     /**
@@ -59,7 +62,13 @@ object DriverUtil {
             .use { session ->
                 session
                     .beginTransaction()
-                    .use { transaction(it) }
+                    .use {
+                        val result = transaction(it)
+
+                        it.commit()
+                        
+                        result
+                    }
             }
     }
 }
