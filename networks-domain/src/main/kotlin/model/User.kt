@@ -76,26 +76,6 @@ data class User(
 ) {
 
     /**
-     * Adjust the instant to be within the bounds of the user entity's registration date and
-     * last active date. It is expected that the registration date is before the last active date.
-     *
-     * @param instant The instant to adjust.
-     *
-     * @return The adjusted instant.
-     */
-    fun adjust(instant: Instant): Instant {
-        if (instant.isBefore(this.registeredAt)) {
-            return this.registeredAt.plusSeconds(30)
-        }
-
-        if (instant.isAfter(this.lastActiveAt)) {
-            return this.lastActiveAt.minusSeconds(10)
-        }
-
-        return instant
-    }
-
-    /**
      * Split the user entity into the left part.
      *
      * @return The left part of the user entity.

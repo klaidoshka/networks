@@ -27,14 +27,14 @@ class InsertLeftSplitQuery(
 
         val commentsCypher = leftSplit.comments.mapIndexed { index, it ->
             """
-            MATCH (cU$index:${User::class.simpleName} {${User::id.name}: $commentUserIdPlaceholder$index})
-            MATCH (cP$index:${Post::class.simpleName} {${Post::id.name}: $commentPostIdPlaceholder$index})
-            CREATE (c$index:${Comment::class.simpleName} {
+            MERGE (cU$index:${User::class.simpleName} {${User::id.name}: $commentUserIdPlaceholder$index})
+            MERGE (cP$index:${Post::class.simpleName} {${Post::id.name}: $commentPostIdPlaceholder$index})
+            MERGE (c$index:${Comment::class.simpleName} {
                 ${Comment::id.name}: $commentIdPlaceholder$index,
                 ${Comment::content.name}: $commentContentPlaceholder$index,
                 ${Comment::commentedAt.name}: $${it::commentedAt.name}$index
             })
-            CREATE (cU$index)-[:COMMENTS]->(c$index)-[:ON]->(cP$index)
+            MERGE (cU$index)-[:COMMENTS]->(c$index)-[:ON]->(cP$index)
             WITH c$index, cU$index, cP$index
             """.trimIndent() to mapOf(
                 commentUserIdPlaceholder + index to it.user.id,
@@ -51,13 +51,13 @@ class InsertLeftSplitQuery(
 
         val likesCypher = leftSplit.likes.mapIndexed { index, it ->
             """
-            MATCH (lU$index:${User::class.simpleName} {${User::id.name}: $likeUserIdPlaceholder$index})
-            MATCH (lP$index:${Post::class.simpleName} {${Post::id.name}: $likePostIdPlaceholder$index})
-            CREATE (l$index:${Like::class.simpleName} {
+            MERGE (lU$index:${User::class.simpleName} {${User::id.name}: $likeUserIdPlaceholder$index})
+            MERGE (lP$index:${Post::class.simpleName} {${Post::id.name}: $likePostIdPlaceholder$index})
+            MERGE (l$index:${Like::class.simpleName} {
                 ${Like::id.name}: $likeIdPlaceholder$index,
                 ${Like::likedAt.name}: $${it::likedAt.name}$index
             })
-            CREATE (lU$index)-[:LIKES]->(l$index)-[:A]->(lP$index)
+            MERGE (lU$index)-[:LIKES]->(l$index)-[:A]->(lP$index)
             WITH l$index, lU$index, lP$index
             """.trimIndent() to mapOf(
                 likeUserIdPlaceholder + index to it.user.id,
@@ -73,13 +73,13 @@ class InsertLeftSplitQuery(
 
         val postsCypher = leftSplit.posts.mapIndexed { index, it ->
             """
-            MATCH (pU$index:${User::class.simpleName} {${User::id.name}: $postUserIdPlaceholder$index})
-            CREATE (p$index:${Post::class.simpleName} {
+            MERGE (pU$index:${User::class.simpleName} {${User::id.name}: $postUserIdPlaceholder$index})
+            MERGE (p$index:${Post::class.simpleName} {
                 ${Post::id.name}: $postIdPlaceholder$index,
                 ${Post::content.name}: $postContentPlaceholder$index,
                 ${Post::postedAt.name}: $${it::postedAt.name}$index
             })
-            CREATE (pU$index)-[:CREATES]->(p$index)
+            MERGE (pU$index)-[:CREATES]->(p$index)
             WITH p$index, pU$index
             """.trimIndent() to mapOf(
                 postUserIdPlaceholder + index to it.user.id,
@@ -99,7 +99,7 @@ class InsertLeftSplitQuery(
 
         val usersCypher = leftSplit.users.mapIndexed { index, it ->
             """
-            CREATE (u$index:${User::class.simpleName} {
+            MERGE (u$index:${User::class.simpleName} {
                 ${User::id.name}: $userIdPlaceholder$index,
                 ${User::birthDate.name}: $userBirthDatePlaceholder$index,
                 ${User::interests.name}: $userInterestsPlaceholder$index,
@@ -119,7 +119,7 @@ class InsertLeftSplitQuery(
                 userStatusPlaceholder + index to it.status
             )
         }
-
+        
         val queries = usersCypher + postsCypher + commentsCypher + likesCypher
 
         if (queries.isEmpty()) {

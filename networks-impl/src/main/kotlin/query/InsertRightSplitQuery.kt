@@ -27,9 +27,9 @@ class InsertRightSplitQuery(
 
         val friendsCypher = rightSplit.friendships.mapIndexed { index, it ->
             """
-            MATCH (fU1$index:${User::class.simpleName} {${UserSplitRight::id.name}: $friendshipUser1IdPlaceholder$index})
-            MATCH (fU2$index:${User::class.simpleName} {${UserSplitRight::id.name}: $friendshipUser2IdPlaceholder$index})
-            CREATE (fU1$index)-[:FRIENDS]->(f$index:${Friendship::class.simpleName} {
+            MERGE (fU1$index:${User::class.simpleName} {${UserSplitRight::id.name}: $friendshipUser1IdPlaceholder$index})
+            MERGE (fU2$index:${User::class.simpleName} {${UserSplitRight::id.name}: $friendshipUser2IdPlaceholder$index})
+            MERGE (fU1$index)-[:FRIENDS]->(f$index:${Friendship::class.simpleName} {
                 ${Friendship::id.name}: $friendshipIdPlaceholder$index,
                 ${Friendship::since.name}: $friendshipSincePlaceholder$index
             })-[:WITH]->(fU2$index)
@@ -47,8 +47,8 @@ class InsertRightSplitQuery(
 
         val groupsCypher = rightSplit.groups.mapIndexed { index, it ->
             """
-            MATCH (gU1$index:${User::class.simpleName} {${UserSplitRight::id.name}: $groupUserIdPlaceholder$index})
-            CREATE (gU1$index)-[:OWNS]->(g$index:${Group::class.simpleName} {
+            MERGE (gU1$index:${User::class.simpleName} {${UserSplitRight::id.name}: $groupUserIdPlaceholder$index})
+            MERGE (gU1$index)-[:OWNS]->(g$index:${Group::class.simpleName} {
                 ${Group::description.name}: $${it::description.name}$index,
                 ${Group::createdAt.name}: $${it::createdAt.name}$index,
                 ${Group::id.name}: $groupGroupIdPlaceholder$index,
@@ -71,9 +71,9 @@ class InsertRightSplitQuery(
 
         val membershipsCypher = rightSplit.memberships.mapIndexed { index, it ->
             """
-            MATCH (msU$index:${User::class.simpleName} {${UserSplitRight::id.name}: $membershipUserIdPlaceholder$index})
-            MATCH (msG$index:${Group::class.simpleName} {${Group::id.name}: $membershipGroupIdPlaceholder$index})
-            CREATE (msU$index)-[:HAS]->(ms$index:${Membership::class.simpleName} {
+            MERGE (msU$index:${User::class.simpleName} {${UserSplitRight::id.name}: $membershipUserIdPlaceholder$index})
+            MERGE (msG$index:${Group::class.simpleName} {${Group::id.name}: $membershipGroupIdPlaceholder$index})
+            MERGE (msU$index)-[:HAS]->(ms$index:${Membership::class.simpleName} {
                 ${Membership::id.name}: $membershipIdPlaceholder$index,
                 ${Membership::since.name}: $membershipSincePlaceholder$index
             })-[:IN]->(msG$index)
@@ -93,14 +93,14 @@ class InsertRightSplitQuery(
 
         val messagesCypher = rightSplit.messages.mapIndexed { index, it ->
             """
-            MATCH (mU1$index:${User::class.simpleName} {${UserSplitRight::id.name}: $messageUserSentIdPlaceholder$index})
-            MATCH (mU2$index:${User::class.simpleName} {${UserSplitRight::id.name}: $messageUserReceivedIdPlaceholder$index})
-            CREATE (mU1$index)-[:SENDS]->(m$index:${Message::class.simpleName} {
+            MERGE (mU1$index:${User::class.simpleName} {${UserSplitRight::id.name}: $messageUserSentIdPlaceholder$index})
+            MERGE (mU2$index:${User::class.simpleName} {${UserSplitRight::id.name}: $messageUserReceivedIdPlaceholder$index})
+            MERGE (mU1$index)-[:SENDS]->(m$index:${Message::class.simpleName} {
                 ${Message::id.name}: $messageIdPlaceholder$index,
                 ${Message::content.name}: $messageContentPlaceholder$index,
                 ${Message::sentAt.name}: $${it::sentAt.name}$index
             })-[:TO]->(mU2$index)
-            CREATE (mU2$index)-[:RECEIVES]->(m$index)-[:FROM]->(mU1$index)
+            MERGE (mU2$index)-[:RECEIVES]->(m$index)-[:FROM]->(mU1$index)
             WITH m$index, mU1$index, mU2$index
             """.trimIndent() to mapOf(
                 messageContentPlaceholder + index to it.content,
@@ -115,7 +115,7 @@ class InsertRightSplitQuery(
 
         val usersCypher = rightSplit.users.mapIndexed { index, it ->
             """
-            CREATE (u$index:${User::class.simpleName} {
+            MERGE (u$index:${User::class.simpleName} {
                 ${UserSplitRight::email.name}: $${it::email.name}$index,
                 ${UserSplitRight::firstName.name}: $${it::firstName.name}$index,
                 ${UserSplitRight::id.name}: $userIdPlaceholder$index,

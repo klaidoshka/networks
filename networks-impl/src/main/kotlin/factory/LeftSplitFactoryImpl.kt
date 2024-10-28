@@ -1,6 +1,7 @@
 package factory
 
 import model.*
+import util.TimeUtil.increaseRandomlyUpTo
 
 class LeftSplitFactoryImpl(
     private val commentFactory: Factory<Comment>,
@@ -17,9 +18,7 @@ class LeftSplitFactoryImpl(
                 val user = usersSplit.random()
 
                 it.copy(
-                    postedAt = users
-                        .first { u -> user.id == u.id }
-                        .adjust(it.postedAt),
+                    postedAt = user.registeredAt.increaseRandomlyUpTo(user.lastActiveAt),
                     user = user
                 )
             }
@@ -38,9 +37,7 @@ class LeftSplitFactoryImpl(
                 posts[posts.indexOf(post)] = postNew
 
                 it.copy(
-                    commentedAt = users
-                        .first { u -> user.id == u.id }
-                        .adjust(it.commentedAt),
+                    commentedAt = postNew.postedAt.increaseRandomlyUpTo(user.lastActiveAt),
                     post = postNew,
                     user = user
                 )
@@ -59,9 +56,7 @@ class LeftSplitFactoryImpl(
                 posts[posts.indexOf(post)] = postNew
 
                 it.copy(
-                    likedAt = users
-                        .first { u -> user.id == u.id }
-                        .adjust(it.likedAt),
+                    likedAt = postNew.postedAt.increaseRandomlyUpTo(user.lastActiveAt),
                     post = postNew,
                     user = user
                 )

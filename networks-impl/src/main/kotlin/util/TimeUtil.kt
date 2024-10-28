@@ -11,6 +11,22 @@ import java.time.format.DateTimeFormatter
 object TimeUtil {
 
     /**
+     * Fills an [Instant] with a random date up to now.
+     */
+    fun Instant.increaseRandomlyUpToNow(): Instant {
+        return increaseRandomlyUpTo(Instant.now())
+    }
+
+    /**
+     * Fills an [Instant] with a random date up to a given date.
+     */
+    fun Instant.increaseRandomlyUpTo(date: Instant): Instant {
+        return Instant.ofEpochMilli(
+            (toEpochMilli()..date.toEpochMilli()).randomOrNull() ?: date.toEpochMilli()
+        )
+    }
+
+    /**
      * Converts an [Instant] to a [LocalDate].
      */
     fun Instant.toLocalDate(): LocalDate {

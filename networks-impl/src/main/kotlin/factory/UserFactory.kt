@@ -4,6 +4,7 @@ import constant.UserConstants
 import model.User
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.random.Random
 
 object UserFactory : Factory<User> {
 
@@ -32,8 +33,10 @@ object UserFactory : Factory<User> {
 
     private fun generateDates(user: User): User {
         val now = Instant.now()
-        val registeredAt = now.minusSeconds((1..10000000L).random())
-        val lastActiveAt = registeredAt.plusSeconds((1..8000000L).random())
+        val registeredAt = now.minusSeconds((1..(86400 * 30 * 24L)).random())
+        val endPoint = now.epochSecond - registeredAt.epochSecond
+        val startPoint = if (Random.nextDouble() < 0.35) endPoint - (86400 * 30 * 5) else 1
+        val lastActiveAt = registeredAt.plusSeconds((startPoint..endPoint).random())
 
         val birthDate = LocalDate.of(
             (1970..2000).random(),

@@ -1,6 +1,7 @@
 package factory
 
 import model.*
+import util.TimeUtil.increaseRandomlyUpTo
 
 class RightSplitFactoryImpl(
     private val friendshipFactory: Factory<Friendship>,
@@ -24,12 +25,8 @@ class RightSplitFactoryImpl(
 
                 it.copy(
                     since = users
-                        .first { u -> user1.id == u.id }
-                        .adjust(
-                            users
-                                .first { u -> user2.id == u.id }
-                                .adjust(it.since)
-                        ),
+                        .first { u -> user1.id == u.id }.registeredAt
+                        .increaseRandomlyUpTo(user2.lastActiveAt),
                     user1 = user1,
                     user2 = user2
                 )
@@ -47,8 +44,8 @@ class RightSplitFactoryImpl(
 
                 it.copy(
                     sentAt = users
-                        .first { u -> sender.id == u.id }
-                        .adjust(it.sentAt),
+                        .first { u -> sender.id == u.id }.registeredAt
+                        .increaseRandomlyUpTo(receiver.lastActiveAt),
                     userReceived = receiver,
                     userSent = sender
                 )
@@ -61,9 +58,8 @@ class RightSplitFactoryImpl(
 
                 it.copy(
                     createdAt = users
-                        .first { u -> user.id == u.id }
-                        .adjust(it.createdAt)
-                        .minusSeconds(3600 * 24 * 14),
+                        .first { u -> user.id == u.id }.registeredAt
+                        .increaseRandomlyUpTo(user.lastActiveAt),
                     user = usersSplit.random()
                 )
             }

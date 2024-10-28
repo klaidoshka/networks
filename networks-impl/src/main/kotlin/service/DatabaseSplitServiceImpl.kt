@@ -6,6 +6,8 @@ import model.UserSplitLeft
 import model.UserSplitRight
 import util.TimeUtil.toLocalDate
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import kotlin.math.absoluteValue
 
 class DatabaseSplitServiceImpl(
     private val userService: UserService
@@ -55,7 +57,10 @@ class DatabaseSplitServiceImpl(
         user: UserSplitLeft,
         date: LocalDate
     ): Boolean {
-        return user.lastActiveAt.toLocalDate() >= date.plusMonths(6)
+        return ChronoUnit.MONTHS.between(
+            user.lastActiveAt.toLocalDate(),
+            date
+        ).absoluteValue < 6
     }
 
     override fun isInPrimary(
@@ -76,7 +81,10 @@ class DatabaseSplitServiceImpl(
         user: UserSplitRight,
         date: LocalDate
     ): Boolean {
-        return user.lastActiveAt.toLocalDate() >= date.plusMonths(6)
+        return ChronoUnit.MONTHS.between(
+            user.lastActiveAt.toLocalDate(),
+            date
+        ).absoluteValue < 6
     }
 
     override suspend fun split(leftSplit: LeftSplit): Pair<LeftSplit, LeftSplit> {
@@ -87,7 +95,7 @@ class DatabaseSplitServiceImpl(
             )
         }
 
-        val (likes, likes2) = leftSplit.likes.partition {
+        val (likes, likes2) = leftSplit.likes.partition {            
             isInPrimary(
                 user = it.user,
                 date = it.likedAt.toLocalDate()
@@ -101,10 +109,12 @@ class DatabaseSplitServiceImpl(
             )
         }
 
+        val now = LocalDate.now()
+
         val (users, users2) = leftSplit.users.partition {
             isInPrimary(
                 user = it,
-                date = it.lastActiveAt.toLocalDate()
+                date = now
             )
         }
 
@@ -152,10 +162,12 @@ class DatabaseSplitServiceImpl(
             )
         }
 
+        val now = LocalDate.now()
+
         val (users, users2) = rightSplit.users.partition {
             isInPrimary(
                 user = it,
-                date = it.lastActiveAt.toLocalDate()
+                date = now
             )
         }
 
