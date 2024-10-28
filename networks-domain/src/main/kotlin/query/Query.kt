@@ -1,16 +1,29 @@
 package query
 
-// TODO: Use injected parameters, return a Map of parameters to use with the query.
+import org.neo4j.driver.Transaction
 
 /**
- * Represents a query to be executed.
+ * Represents a query to be executed and how to execute it.
+ *
+ * When a query is executed, it will be given a [Transaction] to work with.
+ *
+ * @param R the return type of the query.
  */
-fun interface Query {
+interface Query<R> : (Transaction) -> R {
 
     /**
-     * Converts the query to a `cypher` code multiple (if there are many) queries.
+     * Executes the query.
      *
-     * @return The `cypher` queries.
+     * @param transaction the transaction to execute the query in.
+     *
+     * @return the result of the query.
      */
-    fun cypherize(): List<String>
+    override fun invoke(transaction: Transaction): R
 }
+
+/**
+ * Represents a query to be executed and how to execute it. It does not return anything.
+ *
+ * When a query is executed, it will be given a [Transaction] to work with.
+ */
+interface QueryNoReturn : Query<Unit>

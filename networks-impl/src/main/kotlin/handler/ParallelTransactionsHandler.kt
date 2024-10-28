@@ -25,11 +25,11 @@ class ParallelTransactionsHandler<K, R>(
     private val storage = mutableMapOf<K, Pair<(Boolean) -> Unit, TransactionResult>>()
 
     /**
-     * Executes all transactions in parallel. If any of the transactions fail, all transactions
-     * are rolled back.
+     * Executes all transactions in parallel in IO coroutine context. If any of the transactions fail,
+     * all transactions are rolled back.
      *
-     * In case of **success**, the holding result is of type [Map] with the id of the transaction as the key
-     * and the result of the transaction as the value.
+     * In case of **success**, the holding result is of type [Map] with the id of the transaction as
+     * the key and the result of the transaction as the value.
      *
      * @return [TransactionResult.Success] if all transactions were successful, [TransactionResult.Failure]
      * otherwise.

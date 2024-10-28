@@ -34,13 +34,8 @@ interface DbmsInstancesConfiguration {
      * - RightSplit primary database
      * - RightSplit secondary database
      */
-    val databaseNames
-        get() = listOf(
-            leftSplit.primaryDatabaseName,
-            leftSplit.secondaryDatabaseName,
-            rightSplit.primaryDatabaseName,
-            rightSplit.secondaryDatabaseName
-        )
+    val databaseNames: List<String>
+        get() = leftSplit.databaseNames + rightSplit.databaseNames
 
     /**
      * Instance of the data left-split.
@@ -74,6 +69,17 @@ interface DbmsInstancesConfiguration {
      * Instance of the dbms.
      */
     interface Instance {
+
+        /**
+         * List of all database names (2):
+         * - Primary database
+         * - Secondary database
+         */
+        val databaseNames: List<String>
+            get() = listOf(
+                primaryDatabaseName,
+                secondaryDatabaseName
+            )
 
         /**
          * The name of the primary database. More needed data will be stored here.

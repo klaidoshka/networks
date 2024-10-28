@@ -10,13 +10,13 @@ dependencies {
     implementationExposed(libs.guava)
     implementationExposed(libs.koin)
     implementationExposed(libs.kotlin.stdlib)
+    implementationExposed(libs.ktor.serialization.json)
     implementationExposed(libs.ktor.server.core)
     implementationExposed(libs.ktor.server.netty)
+    implementationExposed(libs.ktor.server.negotiation)
     implementationExposed(libs.logback.classic)
     implementationExposed(libs.neo4j.driver)
     implementationExposed(libs.typesafe.config)
-    implementationExposed(libs.moshi)
-    implementationExposed(libs.moshi.kotlin)
 }
 
 kotlin {

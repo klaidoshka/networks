@@ -1,16 +1,21 @@
 package route
 
-import com.squareup.moshi.Moshi
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.apache.commons.lang3.reflect.TypeLiteral
-import service.GraphDatabaseService
+import service.DatabaseService
+import service.FriendshipService
+import service.GenerationService
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 class RoutesRegistry(
-    private val databaseService: GraphDatabaseService,
-    private val moshi: Moshi
+    private val databaseService: DatabaseService,
+    private val friendshipService: FriendshipService,
+    private val generationService: GenerationService
 ) {
 
     /**
@@ -19,10 +24,6 @@ class RoutesRegistry(
      * @param application The application to configure the routing for.
      */
     fun configureRouting(application: Application) = application.run {
-        val mapJsonAdapter = moshi.adapter<Map<String, Any>>(
-            object : TypeLiteral<Map<String, Any>>() {}.type
-        )
-
         routing {
             get {
                 call.respondText(
@@ -33,96 +34,211 @@ class RoutesRegistry(
                 )
             }
 
-            route("/api/v1/graph") {
-                get("/display") {
-                    try {
-                        call.respondText(
-                            contentType = ContentType.Application.Json,
-                            text = mapJsonAdapter.toJson(databaseService.getGraph())
+            route("/api/v1") {
+                route("/graph") {
+                    configureGlobal()
+                }
+
+                route("/friendship") {
+                    configureFriendship()
+                }
+            }
+        }
+    }
+
+    private fun Route.configureGlobal() {
+        get("/display") {
+            try {
+                call.respond(databaseService.getGraph())
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Try again later"
+                }
+            }
+        }
+
+        post("/delete") {
+            try {
+                databaseService.deleteGraph()
+
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Try again later"
+                }
+            }
+        }
+
+        post("/generateLeftSplit") {
+            val amount = call.parameters["amount"]?.toIntOrNull()
+
+            if (amount == null || amount < 1) {
+                call.respondText(status = HttpStatusCode.BadRequest) {
+                    "Invalid or undefined amount"
+                }
+
+                return@post
+            }
+
+            try {
+                generationService.generateNodesInLeftSplit(amount)
+
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Try again later"
+                }
+            }
+        }
+
+        post("/generateRightSplit") {
+            val amount = call.parameters["amount"]?.toIntOrNull()
+
+            if (amount == null || amount < 1) {
+                call.respondText(status = HttpStatusCode.BadRequest) {
+                    "Invalid or undefined amount"
+                }
+
+                return@post
+            }
+
+            try {
+                generationService.generateNodesInRightSplit(amount)
+
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Try again later"
+                }
+            }
+        }
+
+        post("/generate") {
+            val amount = call.parameters["amount"]?.toIntOrNull()
+
+            if (amount == null || amount < 1) {
+                call.respondText(status = HttpStatusCode.BadRequest) {
+                    "Invalid or undefined amount"
+                }
+
+                return@post
+            }
+
+            try {
+                generationService.generateNodes(amount)
+
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Try again later"
+                }
+            }
+        }
+    }
+
+    private fun Route.configureFriendship() {
+        post("/create") {
+            val params = call.receiveParameters()
+            val userId1 = params["userId1"]
+            val userId2 = params["userId2"]
+            val since = params["since"]
+
+            if (userId1 == null || userId2 == null || since == null) {
+                call.respondText(status = HttpStatusCode.BadRequest) {
+                    "Missing parameters"
+                }
+
+                return@post
+            }
+
+            try {
+                val result = friendshipService.create(
+                    since = DateTimeFormatter
+                        .ofPattern("yyyy-MM-dd")
+                        .parse(
+                            since,
+                            LocalDate::from
                         )
-                    } catch (e: Exception) {
-                        call.respondText(status = HttpStatusCode.InternalServerError) {
-                            e.message ?: "Try again later"
-                        }
-                    }
+                        .atStartOfDay()
+                        .toInstant(ZoneOffset.UTC),
+                    userId1 = userId1,
+                    userId2 = userId2
+                )
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    result
+                )
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Failed to create friendship"
+                }
+            }
+        }
+
+        get("/all") {
+            try {
+                call.respond(friendshipService.getAll())
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Failed to retrieve friendships"
+                }
+            }
+        }
+
+        post("/update") {
+            val params = call.receiveParameters()
+            val id = params["friendshipId"]
+            val since = params["newDate"]
+
+            if (id == null || since == null) {
+                call.respondText(status = HttpStatusCode.BadRequest) {
+                    "Missing parameters"
                 }
 
-                post("/delete") {
-                    try {
-                        databaseService.deleteGraph()
+                return@post
+            }
 
-                        call.respond(HttpStatusCode.OK)
-                    } catch (e: Exception) {
-                        call.respondText(status = HttpStatusCode.InternalServerError) {
-                            e.message ?: "Try again later"
-                        }
-                    }
+            try {
+                friendshipService.updateDate(
+                    id = id,
+                    since = DateTimeFormatter
+                        .ofPattern("yyyy-MM-dd")
+                        .parse(
+                            since,
+                            LocalDate::from
+                        )
+                        .atStartOfDay()
+                        .toInstant(ZoneOffset.UTC)
+                )
+
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Failed to update friendship"
+                }
+            }
+        }
+
+        post("/delete") {
+            val params = call.receiveParameters()
+            val id = params["friendshipId"]
+
+            if (id == null) {
+                call.respondText(status = HttpStatusCode.BadRequest) {
+                    "Missing friendshipId"
                 }
 
-                post("/generateLeftSplit") {
-                    val amount = call.parameters["amount"]?.toIntOrNull()
+                return@post
+            }
 
-                    if (amount == null || amount < 1) {
-                        call.respondText(status = HttpStatusCode.BadRequest) {
-                            "Invalid or undefined amount"
-                        }
+            try {
+                friendshipService.delete(id)
 
-                        return@post
-                    }
-
-                    try {
-                        databaseService.generateNodesInLeftSplit(amount)
-
-                        call.respond(HttpStatusCode.OK)
-                    } catch (e: Exception) {
-                        call.respondText(status = HttpStatusCode.InternalServerError) {
-                            e.message ?: "Try again later"
-                        }
-                    }
-                }
-
-                post("/generateRightSplit") {
-                    val amount = call.parameters["amount"]?.toIntOrNull()
-
-                    if (amount == null || amount < 1) {
-                        call.respondText(status = HttpStatusCode.BadRequest) {
-                            "Invalid or undefined amount"
-                        }
-
-                        return@post
-                    }
-
-                    try {
-                        databaseService.generateNodesInRightSplit(amount)
-
-                        call.respond(HttpStatusCode.OK)
-                    } catch (e: Exception) {
-                        call.respondText(status = HttpStatusCode.InternalServerError) {
-                            e.message ?: "Try again later"
-                        }
-                    }
-                }
-
-                post("/generate") {
-                    val amount = call.parameters["amount"]?.toIntOrNull()
-
-                    if (amount == null || amount < 1) {
-                        call.respondText(status = HttpStatusCode.BadRequest) {
-                            "Invalid or undefined amount"
-                        }
-
-                        return@post
-                    }
-
-                    try {
-                        databaseService.generateNodes(amount)
-
-                        call.respond(HttpStatusCode.OK)
-                    } catch (e: Exception) {
-                        call.respondText(status = HttpStatusCode.InternalServerError) {
-                            e.message ?: "Try again later"
-                        }
-                    }
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                call.respondText(status = HttpStatusCode.InternalServerError) {
+                    e.message ?: "Failed to delete friendship"
                 }
             }
         }

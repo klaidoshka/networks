@@ -25,9 +25,10 @@
           Actions
         </div>
         <div class="card-body d-flex flex-column">
+          <!-- Global Database Operations -->
           <h5 class="card-title">Database Actions</h5>
 
-          <p class="card-text mt-3">Click the buttons below to perform actions on the database.</p>
+          <p class="card-text mt-3">Click the buttons below to perform actions on the database</p>
 
           <button id="generateNodesButton" class="btn btn-warning mt-2 text-left">
             Generate Nodes
@@ -44,6 +45,26 @@
           <button id="displayGraphButton" class="btn btn-info mt-2 text-left">Display Graph</button>
 
           <button id="deleteButton" class="btn btn-danger mt-2 text-left">Delete Graph</button>
+
+          <!-- Friendship CRUD Operations -->
+          <h5 class="card-title mt-4">Friendship Actions</h5>
+          <p class="card-text mt-3">Perform friendship-specific operations</p>
+
+          <button id="createFriendshipButton" class="btn btn-success mt-2 text-left">
+            Create Friendship
+          </button>
+
+          <button id="getAllFriendshipsButton" class="btn btn-info mt-2 text-left">
+            Get Friendships
+          </button>
+
+          <button id="updateFriendshipDateButton" class="btn btn-warning mt-2 text-left">
+            Update Friendship Date
+          </button>
+
+          <button id="deleteFriendshipButton" class="btn btn-danger mt-2 text-left">
+            Delete Friendship
+          </button>
         </div>
       </div>
     </div>
@@ -79,7 +100,8 @@
 
 <script>
   const endpointPrefix = 'http://127.0.0.1:23567/api/v1/graph';
-  
+  const friendshipEndpointPrefix = 'http://127.0.0.1:23567/api/v1/friendship';
+
   const startLoad = () => {
     $('#loadingModal')
     .modal(
@@ -99,7 +121,7 @@
     console.error(response);
 
     toastr.error(
-        `Failed ${response.responseText && `(\`${response.responseText}\`)`
+        `Failed ${response.responseText && `(${response.responseText})`
         || 'to execute. Server error.'}`
     );
   }
@@ -108,7 +130,7 @@
     toastr.success(msg);
 
     $('#cy-parent').removeClass('bg-light');
-    
+
     $('#cy').empty();
   }
 
@@ -184,7 +206,7 @@
 
         const cy = cytoscape({
           container: document.getElementById('cy'),
-          elements: data.elements,
+          elements: data.cytoscape,
           style: [
             {
               selector: 'node',
@@ -204,12 +226,16 @@
             }
           ],
           layout: {
-            name: 'cose'
+            name: 'cose',
+            nodeRepulsion: 10000,
+            idealEdgeLength: 100,
+            edgeElasticity: 100,
+            nestingFactor: 0.1,
           },
-          maxZoom: 10,
-          minZoom: -10,
+          maxZoom: 3,
+          minZoom: 0.5,
           styleEnabled: true,
-          wheelSensitive: 0.5
+          wheelSensitive: 0.1
         });
 
         cy.resize();
@@ -236,13 +262,122 @@
       .always(endLoad);
     });
   }
+  const onCreateFriendshipClick = () => {
+    $('#createFriendshipButton').click(() => {
+      const userId1 = prompt("Enter the ID of the first user:");
+      const userId2 = prompt("Enter the ID of the second user:");
+      const since = prompt("Enter the friendship date (YYYY-MM-DD):");
+
+      if (userId1 && userId2 && since) {
+        startLoad();
+
+        $.post(
+            `${friendshipEndpointPrefix}/create`,
+            {
+              userId1,
+              userId2,
+              since
+            },
+            (data) => {
+              console.log(data);
+
+              onSuccess('Friendship created successfully');
+            }
+        )
+        .fail(onFail)
+        .always(endLoad);
+      } else {
+        toastr.error('All fields are required');
+      }
+    });
+  }
+
+  const onGetAllFriendshipsClick = () => {
+    $('#getAllFriendshipsButton').click(() => {
+      startLoad();
+
+      $.get(`${friendshipEndpointPrefix}/all`, (data) => {
+        toastr.success('Friendships retrieved successfully');
+
+        console.log(data);
+
+        if (data.length === 0) {
+          alert('No friendships found');
+
+          return;
+        }
+
+        let friendshipsList = "Friendships listed below\n\n";
+
+        data.forEach(friendship => {
+          friendshipsList += `ID: ${friendship.friendshipId}\nBetween:\n ${friendship.userId1}\n ` +
+              `${friendship.userId2}\nSince: ${friendship.since}\n\n`;
+        });
+
+        alert(friendshipsList);
+      })
+      .fail(onFail)
+      .always(endLoad);
+    });
+  }
+
+  const onUpdateFriendshipDateClick = () => {
+    $('#updateFriendshipDateButton').click(() => {
+      const friendshipId = prompt("Enter the Friendship ID:");
+      const newDate = prompt("Enter the new friendship date (YYYY-MM-DD):");
+
+      if (friendshipId && newDate) {
+        startLoad();
+
+        $.post(
+            `${friendshipEndpointPrefix}/update`,
+            {
+              friendshipId,
+              newDate
+            },
+            () => onSuccess('Friendship date updated successfully')
+        )
+        .fail(onFail)
+        .always(endLoad);
+      } else {
+        toastr.error('Friendship ID and new date are required');
+      }
+    });
+  }
+
+  const onDeleteFriendshipClick = () => {
+    $('#deleteFriendshipButton').click(() => {
+      const friendshipId = prompt("Enter the Friendship ID to delete:");
+
+      if (friendshipId) {
+        startLoad();
+
+        $.post(
+            `${friendshipEndpointPrefix}/delete`,
+            {friendshipId},
+            () => onSuccess('Friendship deleted successfully')
+        )
+        .fail(onFail)
+        .always(endLoad);
+      } else {
+        toastr.error('Friendship ID is required');
+      }
+    });
+  }
 
   $(document).ready(() => {
+    // Global database operations
     onGenerateNodesClick();
     onGenerateLeftSplitNodesClick();
     onGenerateRightSplitNodesClick();
     onDisplayGraphClick();
     onDeleteGraphClick();
+
+    // Friendship CRUD operations
+    onCreateFriendshipClick();
+    onGetAllFriendshipsClick();
+    onUpdateFriendshipDateClick();
+    onDeleteFriendshipClick();
   });
 </script>
 

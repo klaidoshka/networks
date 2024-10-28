@@ -1,7 +1,5 @@
 package koin
 
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import configuration.DbmsInstancesConfiguration
@@ -11,23 +9,17 @@ import model.*
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
-import query.DetachDeleteAllQuery
-import query.InsertLeftSplitQuery
-import query.InsertRightSplitQuery
-import query.MatchAllQuery
+import query.*
 import route.RoutesRegistry
-import service.GraphDatabaseService
-import service.GraphDatabaseServiceImpl
+import service.*
+import java.time.Instant
 
-/**
- * The module containing the definitions for the network components.
- */
-val networksModule = module {
-    // Configuration
+val configurationModule = module {
     single<Config> { ConfigFactory.load() }
     single<DbmsInstancesConfiguration> { ExternalDbmsInstancesConfiguration(get()) }
+}
 
-    // Factory
+val factoryModule = module {
     single<Factory<Comment>>(qualifier<CommentFactory>()) { CommentFactory }
     single<Factory<Friendship>>(qualifier<FriendshipFactory>()) { FriendshipFactory }
     single<Factory<Group>>(qualifier<GroupFactory>()) { GroupFactory }
@@ -53,18 +45,52 @@ val networksModule = module {
             messageFactory = get(qualifier<MessageFactory>())
         )
     }
+}
 
-    // Moshi
-    single<Moshi> {
-        Moshi
-            .Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
+val queryModule = module {
+    factory { (database: String) ->
+        DeleteGraphQuery(
+            database = database,
+            dbmsInstancesConfiguration = get()
+        )
     }
 
-    // Query
+    factory { (database: String, userId1: String, userId2: String, since: Instant) ->
+        FriendshipCreateQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            userId1 = userId1,
+            userId2 = userId2,
+            since = since
+        )
+    }
+
+    factory { (database: String, id: String) ->
+        FriendshipDeleteQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            id = id
+        )
+    }
+
     factory { (database: String) ->
-        DetachDeleteAllQuery(
+        FriendshipGetAllQuery(
+            database = database,
+            dbmsInstancesConfiguration = get()
+        )
+    }
+
+    factory { (database: String, id: String, since: Instant) ->
+        FriendshipUpdateDateQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            id = id,
+            since = since
+        )
+    }
+
+    factory { (database: String) ->
+        GetGraphQuery(
             database = database,
             dbmsInstancesConfiguration = get()
         )
@@ -85,29 +111,77 @@ val networksModule = module {
             toPrimary = toPrimary
         )
     }
+}
 
-    factory { (database: String) ->
-        MatchAllQuery(
-            database = database,
-            dbmsInstancesConfiguration = get()
-        )
-    }
-
-    // Ktor
+val routeModule = module {
     single<RoutesRegistry> {
         RoutesRegistry(
             databaseService = get(),
-            moshi = get()
+            friendshipService = get(),
+            generationService = get()
+        )
+    }
+}
+
+val serviceModule = module {
+    single<DatabaseService> {
+        DatabaseServiceImpl(
+            dbmsInstancesConfiguration = get(),
+            deleteGraphQueryFactory = { database ->
+                get<DeleteGraphQuery> { parametersOf(database) }
+            },
+            getGraphQueryFactory = { database -> get<GetGraphQuery> { parametersOf(database) } },
+            userFactory = get(qualifier<UserFactory>())
         )
     }
 
-    // Service
-    single<GraphDatabaseService> {
-        GraphDatabaseServiceImpl(
+    single<DatabaseSplitService> {
+        DatabaseSplitServiceImpl()
+    }
+
+    single<FriendshipService> {
+        FriendshipServiceImpl(
+            databaseService = get(),
+            databaseSplitService = get(),
             dbmsInstancesConfiguration = get(),
-            detachDeleteAllQueryFactory = { database ->
-                get<DetachDeleteAllQuery> { parametersOf(database) }
+            friendshipCreateQueryFactory = { database, userId1, userId2, since ->
+                get<FriendshipCreateQuery> {
+                    parametersOf(
+                        database,
+                        userId1,
+                        userId2,
+                        since
+                    )
+                }
             },
+            friendshipDeleteQueryFactory = { database, id ->
+                get<FriendshipDeleteQuery> {
+                    parametersOf(
+                        database,
+                        id
+                    )
+                }
+            },
+            friendshipGetQueryFactory = { database ->
+                get<FriendshipGetAllQuery> { parametersOf(database) }
+            },
+            friendshipUpdateQueryFactory = { database, id, since ->
+                get<FriendshipUpdateDateQuery> {
+                    parametersOf(
+                        database,
+                        id,
+                        since
+                    )
+                }
+            }
+        )
+    }
+
+    single<GenerationService> {
+        GenerationServiceImpl(
+            databaseService = get(),
+            databaseSplitService = get(),
+            dbmsInstancesConfiguration = get(),
             insertLeftSplitQueryFactory = { leftSplit, toPrimary ->
                 get<InsertLeftSplitQuery> {
                     parametersOf(
@@ -125,7 +199,6 @@ val networksModule = module {
                 }
             },
             leftSplitFactory = get(),
-            matchAllQueryFactory = { database -> get<MatchAllQuery> { parametersOf(database) } },
             rightSplitFactory = get(),
             userFactory = get(qualifier<UserFactory>())
         )
