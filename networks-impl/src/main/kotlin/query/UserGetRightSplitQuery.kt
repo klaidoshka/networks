@@ -1,6 +1,7 @@
 package query
 
 import configuration.DbmsInstancesConfiguration
+import model.User
 import model.UserSplitRight
 import org.neo4j.driver.Transaction
 import util.TimeUtil.toInstant
@@ -15,7 +16,7 @@ class UserGetRightSplitQuery(
         val result = transaction.run(
             """
             USE `${dbmsInstancesConfiguration.compositeName}`.`$database`
-            MATCH (u:User {id: $${::id.name}})
+            MATCH (u:${User::class.simpleName} {${User::id.name}: ${'$'}${::id.name}})
             RETURN u
             """.trimIndent(),
             mapOf(::id.name to id)

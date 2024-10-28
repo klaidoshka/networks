@@ -46,6 +46,26 @@
 
           <button id="deleteButton" class="btn btn-danger mt-2 text-left">Delete Graph</button>
 
+          <!-- Like CRUD Operations -->
+          <h5 class="card-title mt-4">Like Actions</h5>
+          <p class="card-text mt-3">Perform like-specific operations</p>
+
+          <button id="createLikeButton" class="btn btn-success mt-2 text-left">
+            Create Like
+          </button>
+
+          <button id="getAllLikesButton" class="btn btn-info mt-2 text-left">
+            Get Liked Posts
+          </button>
+
+          <button id="updateLikeDateButton" class="btn btn-warning mt-2 text-left">
+            Update Liked Post
+          </button>
+
+          <button id="deleteLikeButton" class="btn btn-danger mt-2 text-left">
+            Delete Like
+          </button>
+
           <!-- Friendship CRUD Operations -->
           <h5 class="card-title mt-4">Friendship Actions</h5>
           <p class="card-text mt-3">Perform friendship-specific operations</p>
@@ -97,274 +117,11 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.20.0/cytoscape.min.js"></script>
+<script src="js/globalApi.js"></script>
+<script src="js/friendshipApi.js"></script>
+<script src="js/likeApi.js"></script>
 
 <script>
-  const endpointPrefix = 'http://127.0.0.1:23567/api/v1/graph';
-  const friendshipEndpointPrefix = 'http://127.0.0.1:23567/api/v1/friendship';
-
-  const startLoad = () => {
-    $('#loadingModal')
-    .modal(
-        {
-          backdrop: 'static',
-          keyboard: false
-        }
-    )
-    .modal('show');
-  }
-
-  const endLoad = () => {
-    $('#loadingModal').modal('hide');
-  }
-
-  const onFail = (response) => {
-    console.error(response);
-
-    toastr.error(
-        `Failed ${response.responseText && `(${response.responseText})`
-        || 'to execute. Server error.'}`
-    );
-  }
-
-  const onSuccess = (msg) => {
-    toastr.success(msg);
-
-    $('#cy-parent').removeClass('bg-light');
-
-    $('#cy').empty();
-  }
-
-  const onGenerateNodesClick = () => {
-    $('#generateNodesButton').click(() => {
-      const amount = prompt("Enter the amount of nodes to generate:");
-
-      if (amount > 0) {
-        startLoad();
-
-        $
-        .post(
-            `${endpointPrefix}/generate?amount=${amount}`,
-            () => onSuccess('Nodes — generated')
-        )
-        .fail(onFail)
-        .always(endLoad);
-      } else {
-        toastr.error('Invalid amount. Must be greater than 0');
-      }
-    });
-  }
-
-  const onGenerateLeftSplitNodesClick = () => {
-    $('#generateLeftSplitNodesButton').click(() => {
-      const amount = prompt("Enter the amount of nodes to generate for the left split:");
-
-      if (amount > 0) {
-        startLoad();
-
-        $
-        .post(
-            `${endpointPrefix}/generateLeftSplit?amount=${amount}`,
-            () => onSuccess('Left split nodes — generated')
-        )
-        .fail(onFail)
-        .always(endLoad);
-      } else {
-        toastr.error('Invalid amount. Must be greater than 0');
-      }
-    });
-  }
-
-  const onGenerateRightSplitNodesClick = () => {
-    $('#generateRightSplitNodesButton').click(() => {
-      const amount = prompt("Enter the amount of nodes to generate for the right split:");
-
-      if (amount > 0) {
-        startLoad();
-
-        $
-        .post(
-            `${endpointPrefix}/generateRightSplit?amount=${amount}`,
-            () => onSuccess('Right split nodes — generated')
-        )
-        .fail(onFail)
-        .always(endLoad);
-      } else {
-        toastr.error('Invalid amount. Must be greater than 0');
-      }
-    });
-  }
-
-  const onDisplayGraphClick = () => {
-    $('#displayGraphButton').click(() => {
-      startLoad();
-
-      $
-      .get(`${endpointPrefix}/display`, (data) => {
-        toastr.success('Graph — displayed');
-
-        console.log(data);
-
-        const cy = cytoscape({
-          container: document.getElementById('cy'),
-          elements: data.cytoscape,
-          style: [
-            {
-              selector: 'node',
-              style: {
-                'background-color': '#666',
-                'label': 'data(id)'
-              }
-            },
-            {
-              selector: 'edge',
-              style: {
-                'width': 3,
-                'line-color': '#ccc',
-                'target-arrow-color': '#ccc',
-                'target-arrow-shape': 'triangle'
-              }
-            }
-          ],
-          layout: {
-            name: 'cose',
-            nodeRepulsion: 10000,
-            idealEdgeLength: 100,
-            edgeElasticity: 100,
-            nestingFactor: 0.1,
-          },
-          maxZoom: 3,
-          minZoom: 0.5,
-          styleEnabled: true,
-          wheelSensitive: 0.1
-        });
-
-        cy.resize();
-
-        cy.fit();
-
-        $('#cy-parent').addClass('bg-light');
-      })
-      .fail(onFail)
-      .always(endLoad);
-    });
-  }
-
-  const onDeleteGraphClick = () => {
-    $('#deleteButton').click(() => {
-      startLoad();
-
-      $
-      .post(
-          `${endpointPrefix}/delete`,
-          () => onSuccess('Graph — deleted')
-      )
-      .fail(onFail)
-      .always(endLoad);
-    });
-  }
-  const onCreateFriendshipClick = () => {
-    $('#createFriendshipButton').click(() => {
-      const userId1 = prompt("Enter the ID of the first user:");
-      const userId2 = prompt("Enter the ID of the second user:");
-      const since = prompt("Enter the friendship date (YYYY-MM-DD):");
-
-      if (userId1 && userId2 && since) {
-        startLoad();
-
-        $.post(
-            `${friendshipEndpointPrefix}/create`,
-            {
-              userId1,
-              userId2,
-              since
-            },
-            (data) => {
-              console.log(data);
-
-              onSuccess('Friendship created successfully');
-            }
-        )
-        .fail(onFail)
-        .always(endLoad);
-      } else {
-        toastr.error('All fields are required');
-      }
-    });
-  }
-
-  const onGetAllFriendshipsClick = () => {
-    $('#getAllFriendshipsButton').click(() => {
-      startLoad();
-
-      $.get(`${friendshipEndpointPrefix}/all`, (data) => {
-        toastr.success('Friendships retrieved successfully');
-
-        console.log(data);
-
-        if (data.length === 0) {
-          alert('No friendships found');
-
-          return;
-        }
-
-        let friendshipsList = "Friendships listed below\n\n";
-
-        data.forEach(friendship => {
-          friendshipsList += `ID: ${friendship.friendshipId}\nBetween:\n ${friendship.userId1}\n ` +
-              `${friendship.userId2}\nSince: ${friendship.since}\n\n`;
-        });
-
-        alert(friendshipsList);
-      })
-      .fail(onFail)
-      .always(endLoad);
-    });
-  }
-
-  const onUpdateFriendshipDateClick = () => {
-    $('#updateFriendshipDateButton').click(() => {
-      const friendshipId = prompt("Enter the Friendship ID:");
-      const newDate = prompt("Enter the new friendship date (YYYY-MM-DD):");
-
-      if (friendshipId && newDate) {
-        startLoad();
-
-        $.post(
-            `${friendshipEndpointPrefix}/update`,
-            {
-              friendshipId,
-              newDate
-            },
-            () => onSuccess('Friendship date updated successfully')
-        )
-        .fail(onFail)
-        .always(endLoad);
-      } else {
-        toastr.error('Friendship ID and new date are required');
-      }
-    });
-  }
-
-  const onDeleteFriendshipClick = () => {
-    $('#deleteFriendshipButton').click(() => {
-      const friendshipId = prompt("Enter the Friendship ID to delete:");
-
-      if (friendshipId) {
-        startLoad();
-
-        $.post(
-            `${friendshipEndpointPrefix}/delete`,
-            {friendshipId},
-            () => onSuccess('Friendship deleted successfully')
-        )
-        .fail(onFail)
-        .always(endLoad);
-      } else {
-        toastr.error('Friendship ID is required');
-      }
-    });
-  }
-
   $(document).ready(() => {
     // Global database operations
     onGenerateNodesClick();
@@ -372,6 +129,12 @@
     onGenerateRightSplitNodesClick();
     onDisplayGraphClick();
     onDeleteGraphClick();
+
+    // Like CRUD operations
+    onCreateLikeClick();
+    onGetAllLikesClick();
+    onUpdateLikeDateClick();
+    onDeleteLikeClick();
 
     // Friendship CRUD operations
     onCreateFriendshipClick();

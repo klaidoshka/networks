@@ -112,6 +112,39 @@ val queryModule = module {
         )
     }
 
+    factory { (database: String, userId: String, postId: String) ->
+        LikeCreateQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            postId = postId,
+            userId = userId
+        )
+    }
+
+    factory { (database: String, id: String) ->
+        LikeDeleteQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            id = id
+        )
+    }
+
+    factory { (database: String) ->
+        LikeGetAllQuery(
+            database = database,
+            dbmsInstancesConfiguration = get()
+        )
+    }
+
+    factory { (database: String, id: String, postId: String) ->
+        LikeUpdatePostQuery(
+            database = database,
+            dbmsInstancesConfiguration = get(),
+            id = id,
+            postId = postId
+        )
+    }
+
     factory { (database: String, id: String) ->
         UserGetLeftSplitQuery(
             database = database,
@@ -134,7 +167,8 @@ val routeModule = module {
         RoutesRegistry(
             databaseService = get(),
             friendshipService = get(),
-            generationService = get()
+            generationService = get(),
+            likeService = get()
         )
     }
 }
@@ -217,6 +251,43 @@ val serviceModule = module {
             leftSplitFactory = get(),
             rightSplitFactory = get(),
             userFactory = get(qualifier<UserFactory>())
+        )
+    }
+
+    single<LikeService> {
+        LikeServiceImpl(
+            databaseService = get(),
+            databaseSplitService = get(),
+            dbmsInstancesConfiguration = get(),
+            likeCreateQueryFactory = { database, userId, postId ->
+                get<LikeCreateQuery> {
+                    parametersOf(
+                        database,
+                        userId,
+                        postId
+                    )
+                }
+            },
+            likeDeleteQueryFactory = { database, id ->
+                get<LikeDeleteQuery> {
+                    parametersOf(
+                        database,
+                        id
+                    )
+                }
+            },
+            likeGetQueryFactory = { database ->
+                get<LikeGetAllQuery> { parametersOf(database) }
+            },
+            likeUpdateQueryFactory = { database, id, postId ->
+                get<LikeUpdatePostQuery> {
+                    parametersOf(
+                        database,
+                        id,
+                        postId
+                    )
+                }
+            }
         )
     }
 
