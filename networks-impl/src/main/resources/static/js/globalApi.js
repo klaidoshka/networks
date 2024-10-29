@@ -1,37 +1,5 @@
 const endpointPrefix = 'http://127.0.0.1:23567/api/v1/graph';
 
-const startLoad = () => {
-  $('#loadingModal')
-  .modal(
-      {
-        backdrop: 'static',
-        keyboard: false
-      }
-  )
-  .modal('show');
-}
-
-const endLoad = () => {
-  $('#loadingModal').modal('hide');
-}
-
-const onFail = (response) => {
-  console.error(response);
-
-  toastr.error(
-      `Failed ${response.responseText && `(${response.responseText})`
-      || 'to execute. Server error.'}`
-  );
-}
-
-const onSuccess = (msg) => {
-  toastr.success(msg);
-
-  $('#cy-parent').removeClass('bg-light');
-
-  $('#cy').empty();
-}
-
 const onGenerateNodesClick = () => {
   $('#generateNodesButton').click(() => {
     const amount = prompt("Enter the amount of nodes to generate:");
@@ -54,7 +22,8 @@ const onGenerateNodesClick = () => {
 
 const onGenerateLeftSplitNodesClick = () => {
   $('#generateLeftSplitNodesButton').click(() => {
-    const amount = prompt("Enter the amount of nodes to generate for the left split:");
+    const amount = prompt(
+        "Enter the amount of nodes to generate for the left split:");
 
     if (amount > 0) {
       startLoad();
@@ -74,7 +43,8 @@ const onGenerateLeftSplitNodesClick = () => {
 
 const onGenerateRightSplitNodesClick = () => {
   $('#generateRightSplitNodesButton').click(() => {
-    const amount = prompt("Enter the amount of nodes to generate for the right split:");
+    const amount = prompt(
+        "Enter the amount of nodes to generate for the right split:");
 
     if (amount > 0) {
       startLoad();
@@ -136,11 +106,16 @@ const onDisplayGraphClick = () => {
         wheelSensitive: 0.1
       });
 
+      $('#cy-parent').addClass('bg-light');
+
+      $('#cy').css({
+        'width': '100%',
+        'height': '500px'
+      });
+
       cy.resize();
 
       cy.fit();
-
-      $('#cy-parent').addClass('bg-light');
     })
     .fail(onFail)
     .always(endLoad);
