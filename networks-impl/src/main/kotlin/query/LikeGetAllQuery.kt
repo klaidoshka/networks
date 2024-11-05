@@ -15,6 +15,7 @@ class LikeGetAllQuery(
 ) : Query<List<Like>> {
 
     override fun invoke(transaction: Transaction): List<Like> {
+        // TODO: Rethink the logic for this. Maybe more correct filter can be applied to ignore link-nodes.
         return transaction
             .run(
                 """
@@ -23,6 +24,7 @@ class LikeGetAllQuery(
                     (u:${User::class.simpleName})-[:LIKES]->
                     (l:${Like::class.simpleName})-[:A]->
                     (p:${Post::class.simpleName})
+                WHERE size(keys(u)) > 1 AND size(keys(l)) > 1 AND size(keys(p)) > 1
                 RETURN l, u, p
                 """.trimIndent()
             )

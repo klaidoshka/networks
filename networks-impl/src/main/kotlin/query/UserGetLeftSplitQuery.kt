@@ -14,10 +14,12 @@ class UserGetLeftSplitQuery(
 ) : Query<UserSplitLeft?> {
 
     override fun invoke(transaction: Transaction): UserSplitLeft? {
+        // TODO: Rethink the logic for this. Maybe more correct filter can be applied to ignore link-nodes.
         val result = transaction.run(
             """
             USE `${dbmsInstancesConfiguration.compositeName}`.`$database`
             MATCH (u:${User::class.simpleName} {${User::id.name}: $${::id.name}})
+            WHERE size(keys(u)) > 1
             RETURN u
             """.trimIndent(),
             mapOf(::id.name to id)
