@@ -1,3 +1,37 @@
+const showFormModal = (title, fields, onSubmit) => {
+  $('#formModalTitle').text(title);
+  
+  const form = $('#formModalForm');
+  
+  form.empty();
+  
+  fields.forEach(field => {
+    form.append(`
+        <div class="form-group">
+          <label for="${field.id}">${field.label}</label>
+          <input type="${field.type}" class="form-control" id="${field.id}" ${field.required
+        ? 'required' : ''}>
+        </div>
+      `);
+  });
+  
+  $('#formModalSubmit')
+    .off('click')
+    .on('click', () => {
+      const formData = {};
+      
+      fields.forEach(field => {
+        formData[field.id] = $(`#${field.id}`).val();
+      });
+      
+      onSubmit(formData);
+      
+      $('#formModal').modal('hide');
+    });
+  
+  $('#formModal').modal('show');
+}
+
 const startLoad = () => {
   $('#loadingModal')
   .modal(
@@ -22,15 +56,13 @@ const onFail = (response) => {
   );
 }
 
-const onSuccess = (msg) => {
+const onSuccess = (msg) => {  
   toastr.success(msg);
 
-  $('#cy-parent').removeClass('bg-light');
-
-  $('#cy')
-    .empty()
-    .css({
-      'width': '',
-      'height': ''
-    });
+  $('#display')
+  .empty()
+  .css({
+    'width': '',
+    'height': ''
+  });
 }

@@ -2,31 +2,49 @@ const friendshipEndpointPrefix = 'http://127.0.0.1:23567/api/v1/friendship';
 
 const onCreateFriendshipClick = () => {
   $('#createFriendshipButton').click(() => {
-    const userId1 = prompt("Enter the id of the first user:");
-    const userId2 = prompt("Enter the id of the second user:");
-    const since = prompt("Enter the friendship date (YYYY-MM-DD):");
-
-    if (userId1 && userId2 && since) {
-      startLoad();
-
-      $.post(
-          `${friendshipEndpointPrefix}/create`,
+    showFormModal(
+        'Create Friendship',
+        [
           {
-            userId1,
-            userId2,
-            since
+            id: 'userId1',
+            label: 'Enter the id of the first user:',
+            type: 'text',
+            required: true
           },
-          (data) => {
-            console.log(data);
-
-            onSuccess('Friendship created successfully');
+          {
+            id: 'userId2',
+            label: 'Enter the id of the second user:',
+            type: 'text',
+            required: true
+          },
+          {
+            id: 'since',
+            label: 'Enter the friendship date (YYYY-MM-DD):',
+            type: 'date',
+            required: true
           }
-      )
-      .fail(onFail)
-      .always(endLoad);
-    } else {
-      toastr.error('All fields are required');
-    }
+        ],
+        (formData) => {
+          const {userId1, userId2, since} = formData;
+
+          if (userId1 && userId2 && since) {
+            startLoad();
+
+            $.post(
+                `${friendshipEndpointPrefix}/create`,
+                {userId1, userId2, since},
+                (data) => {
+                  console.log(data);
+                  onSuccess('Friendship created successfully');
+                }
+            )
+            .fail(onFail)
+            .always(endLoad);
+          } else {
+            toastr.error('All fields are required');
+          }
+        }
+    );
   });
 }
 
@@ -35,25 +53,52 @@ const onGetAllFriendshipsClick = () => {
     startLoad();
 
     $.get(`${friendshipEndpointPrefix}/all`, (data) => {
-      toastr.success('Friendships retrieved successfully');
+      const displayDiv = $('#display');
 
-      console.log(data);
-
-      if (data.length === 0) {
-        alert('No friendships found');
-
+      if (!displayDiv.is(':empty')) {
+        onSuccess('Friendships — hidden');
+        
         return;
       }
 
-      let friendshipsList = "Friendships listed below\n\n";
+      toastr.success('Friendships — shown');
+
+      console.log(data);
+
+      displayDiv.empty();
+
+      if (data.length === 0) {
+        displayDiv.append('<h3>No friendships found</h3>');
+        
+        return;
+      }
+
+      displayDiv.append('<h3>Friendships</h3>');
+
+      const table = $('<table class="table table-striped"></table>');
+      const thead = $('<thead><tr><th>Id</th><th>User Id 1</th><th>User Id 2</th><th>Since</th></tr></thead>');
+      const tbody = $('<tbody></tbody>');
 
       data.forEach(friendship => {
-        friendshipsList += `Id: ${friendship.friendshipId}\nBetween:\n ${friendship.userId1}\n `
-            +
-            `${friendship.userId2}\nSince: ${friendship.since}\n\n`;
+        const row = $('<tr></tr>');
+
+        row.append(`<td>${friendship.friendshipId}</td>`);
+        row.append(`<td>${friendship.userId1}</td>`);
+        row.append(`<td>${friendship.userId2}</td>`);
+        row.append(`<td>${friendship.since}</td>`);
+
+        tbody.append(row);
       });
 
-      alert(friendshipsList);
+      table
+      .append(thead)
+      .append(tbody)
+      .appendTo(displayDiv);
+
+      displayDiv.css({
+        'max-height': '400px',
+        'overflow-y': 'auto'
+      });
     })
     .fail(onFail)
     .always(endLoad);
@@ -62,44 +107,72 @@ const onGetAllFriendshipsClick = () => {
 
 const onUpdateFriendshipDateClick = () => {
   $('#updateFriendshipDateButton').click(() => {
-    const friendshipId = prompt("Enter the friendship id:");
-    const newDate = prompt("Enter the new friendship date (YYYY-MM-DD):");
-
-    if (friendshipId && newDate) {
-      startLoad();
-
-      $.post(
-          `${friendshipEndpointPrefix}/update`,
+    showFormModal(
+        'Update Friendship Date',
+        [
           {
-            friendshipId,
-            newDate
+            id: 'friendshipId',
+            label: 'Enter the friendship id:',
+            type: 'text',
+            required: true
           },
-          () => onSuccess('Friendship date updated successfully')
-      )
-      .fail(onFail)
-      .always(endLoad);
-    } else {
-      toastr.error('Friendship id and new date are required');
-    }
+          {
+            id: 'newDate',
+            label: 'Enter the new friendship date:',
+            type: 'date',
+            required: true
+          }
+        ],
+        (formData) => {
+          const {friendshipId, newDate} = formData;
+
+          if (friendshipId && newDate) {
+            startLoad();
+
+            $.post(
+                `${friendshipEndpointPrefix}/update`,
+                {friendshipId, newDate},
+                () => onSuccess('Friendship date updated successfully')
+            )
+            .fail(onFail)
+            .always(endLoad);
+          } else {
+            toastr.error('Friendship id and new date are required');
+          }
+        }
+    );
   });
 }
 
 const onDeleteFriendshipClick = () => {
   $('#deleteFriendshipButton').click(() => {
-    const friendshipId = prompt("Enter the friendship id to delete:");
+    showFormModal(
+        'Delete Friendship',
+        [
+          {
+            id: 'friendshipId',
+            label: 'Enter the friendship id to delete:',
+            type: 'text',
+            required: true
+          }
+        ],
+        (formData) => {
+          const {friendshipId} = formData;
 
-    if (friendshipId) {
-      startLoad();
+          if (friendshipId) {
+            startLoad();
 
-      $.post(
-          `${friendshipEndpointPrefix}/delete`,
-          {friendshipId},
-          () => onSuccess('Friendship deleted successfully')
-      )
-      .fail(onFail)
-      .always(endLoad);
-    } else {
-      toastr.error('Friendship id is required');
-    }
+            $.post(
+                `${friendshipEndpointPrefix}/delete`,
+                {friendshipId},
+                () => onSuccess('Friendship deleted successfully')
+            )
+            .fail(onFail)
+            .always(endLoad);
+          } else {
+            toastr.error('Friendship id is required');
+          }
+        }
+    );
   });
 }
