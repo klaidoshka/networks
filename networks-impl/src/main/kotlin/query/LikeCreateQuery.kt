@@ -16,9 +16,9 @@ class LikeCreateQuery(
     private val dbmsInstancesConfiguration: DbmsInstancesConfiguration,
     private val postId: String,
     private val userId: String
-) : Query<Like> {
+) : Query<Like?> {
 
-    override fun invoke(transaction: Transaction): Like {
+    override fun invoke(transaction: Transaction): Like? {
         val result = transaction.run(
             """
             USE `${dbmsInstancesConfiguration.compositeName}`.`$database`
@@ -43,15 +43,15 @@ class LikeCreateQuery(
             )
         )
 
-        if (!result.hasNext()) {
+        return if (!result.hasNext()) {
             result.consume()
 
-            throw IllegalStateException("Like was not created, post or user might not exist")
+            null
+        } else {
+            result
+                .single()
+                .let(::map)
         }
-
-        return result
-            .single()
-            .let(::map)
     }
 
     private fun map(record: Record): Like {

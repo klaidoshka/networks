@@ -7,8 +7,6 @@ import query.LikeDeleteQuery
 import query.LikeGetAllQuery
 import query.LikeUpdatePostQuery
 import util.DriverUtil.runInParallel
-import util.DriverUtil.runSingle
-import java.time.LocalDate
 
 class LikeServiceImpl(
     private val databaseService: DatabaseService,
@@ -24,19 +22,20 @@ class LikeServiceImpl(
         userId: String,
         postId: String
     ): Like {
-        val primary = databaseSplitService.isInPrimary(
-            userId = userId,
-            date = LocalDate.now()
-        )
-
-        return databaseService.driver.runSingle(dbmsInstancesConfiguration.compositeName) { transaction ->
-            likeCreateQueryFactory(
-                if (primary) dbmsInstancesConfiguration.leftSplit.primaryDatabaseName
-                else dbmsInstancesConfiguration.leftSplit.secondaryDatabaseName,
-                userId,
-                postId
-            )(transaction)
-        }
+        // Creating in all fragments, since cannot know where the post is stored
+        // Should make it synchronized and stop on first success or just drop horizontal sharding
+        return databaseService.driver.runInParallel(
+            dbmsInstancesConfiguration.compositeName,
+            dbmsInstancesConfiguration.leftSplit.databaseNames.associateWith { database ->
+                { transaction ->
+                    likeCreateQueryFactory(
+                        database,
+                        userId,
+                        postId
+                    )(transaction)
+                }
+            }).values
+            .firstNotNullOfOrNull { it } ?: throw IllegalStateException("User or post not found")
     }
 
     override suspend fun delete(id: String) {
@@ -92,7 +91,7 @@ class LikeServiceImpl(
             .sum()
 
         if (result == 0) {
-            throw IllegalArgumentException("Like with id $id not found")
+            throw IllegalArgumentException("Like or post not found")
         }
     }
 }
