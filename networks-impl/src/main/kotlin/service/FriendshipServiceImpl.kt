@@ -7,9 +7,7 @@ import query.FriendshipDeleteQuery
 import query.FriendshipGetAllQuery
 import query.FriendshipUpdateDateQuery
 import util.DriverUtil.runInParallel
-import util.DriverUtil.runSingle
 import java.time.Instant
-import java.time.ZoneId
 
 class FriendshipServiceImpl(
     private val databaseService: DatabaseService,
@@ -26,23 +24,19 @@ class FriendshipServiceImpl(
         userId2: String,
         since: Instant
     ): Friendship {
-        val primary = databaseSplitService.isInPrimary(
-            userId1 = userId1,
-            userId2 = userId2,
-            date = since
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-        )
-
-        return databaseService.driver.runSingle(dbmsInstancesConfiguration.compositeName) { transaction ->
-            friendshipCreateQueryFactory(
-                if (primary) dbmsInstancesConfiguration.rightSplit.primaryDatabaseName
-                else dbmsInstancesConfiguration.rightSplit.secondaryDatabaseName,
-                userId1,
-                userId2,
-                since
-            )(transaction)
-        }
+        return databaseService.driver.runInParallel(dbmsInstancesConfiguration.compositeName,
+            dbmsInstancesConfiguration.rightSplit.databaseNames.associateWith { database ->
+                { transaction ->
+                    friendshipCreateQueryFactory(
+                        database,
+                        userId1,
+                        userId2,
+                        since
+                    )(transaction)
+                }
+            }).values
+            .firstNotNullOfOrNull { it }
+            ?: throw IllegalStateException("Either of or both users ($userId1, $userId2) not found")
     }
 
     override suspend fun delete(id: String) {

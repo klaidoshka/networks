@@ -15,9 +15,9 @@ class FriendshipCreateQuery(
     private val userId1: String,
     private val userId2: String,
     private val since: Instant
-) : Query<Friendship> {
+) : Query<Friendship?> {
 
-    override fun invoke(transaction: Transaction): Friendship {
+    override fun invoke(transaction: Transaction): Friendship? {
         val result = transaction.run(
             """
             USE `${dbmsInstancesConfiguration.compositeName}`.`$database`
@@ -44,12 +44,12 @@ class FriendshipCreateQuery(
             )
         )
 
-        if (result.hasNext()) {
-            return map(result.single())
-        } else {
+        return if (!result.hasNext()) {
             result.consume()
 
-            throw IllegalStateException("Friendship was not created, users might not exist")
+            null
+        } else {
+            map(result.single())
         }
     }
 
